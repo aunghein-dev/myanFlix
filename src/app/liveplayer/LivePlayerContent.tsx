@@ -9,16 +9,22 @@ import { Suspense, useEffect, useRef } from "react";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import Spinner from "@/components/atoms/Spinner";
 
+const LIVE_API = process.env.NEXT_PUBLIC_LIVE_API;
+
 function LivePlayerContent() {
   const searchParams = useSearchParams();
   const info = searchParams.get("info") ?? "No info provided";
 
-  const { data: liveMatches, error, isLoading } = useSWR<FootballMatch[]>(
-    "/api/live",
+  const {
+    data: liveMatches,
+    error,
+    isLoading,
+  } = useSWR<FootballMatch[]>(
+    LIVE_API,
     fetcher,
     {
       revalidateOnFocus: true,
-      refreshInterval: 60000,
+      refreshInterval: 60_000, 
       errorRetryCount: 3,
     }
   );

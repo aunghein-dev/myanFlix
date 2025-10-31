@@ -9,6 +9,7 @@ import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
 
+const LIVE_API = process.env.NEXT_PUBLIC_LIVE_API;
 export default function LivePage() {
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -16,11 +17,15 @@ export default function LivePage() {
     data: liveMatches,
     error,
     isLoading,
-  } = useSWR<FootballMatch[]>("/api/live", fetcher, {
-    revalidateOnFocus: true,
-    refreshInterval: 60000,
-    errorRetryCount: 3,
-  });
+  } = useSWR<FootballMatch[]>(
+    LIVE_API,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 60_000, 
+      errorRetryCount: 3,
+    }
+  );
 
   const {
     data: picksData,

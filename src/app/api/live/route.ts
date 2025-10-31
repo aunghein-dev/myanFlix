@@ -2,8 +2,8 @@
 import { NextResponse } from "next/server";
 import { findTeamMatch, findLeagueMatch, calculateSimilarity } from "@/lib/teamMatching";
 
-const IBET_URL = process.env.NEXT_PUBLIC_IBET_URL!;
-const VNRES_PROXY_URL = process.env.NEXT_PUBLIC_VNRES_PROXY_URL!;
+const RESULT_PARENT_URL = "https://sport.ibet288.com/_view/Result.aspx";
+const BASE_URL = "https://json.vnres.co";
 
 interface IbetResult {
   league: string;
@@ -67,7 +67,7 @@ export async function GET() {
   try {
     const dates = [
       formatDate(Date.now()),
-      formatDate(Date.now() + 72_000_000), 
+      formatDate(Date.now() + 72_000_000), // 20 hours ahead (as previously used)
     ];
 
     const ibetResults = await getCachedIbetResults();
@@ -108,7 +108,14 @@ async function getCachedIbetResults(): Promise<IbetResult[]> {
 
 async function fetchIbetResults(): Promise<IbetResult[]> {
   try {
-    const res = await fetch(`${IBET_URL}`);
+    const res = await fetch(RESULT_PARENT_URL, {
+      headers: {
+        "User-Agent": "Mozilla/5.0",
+        Accept: "text/html",
+        Referer: "https://www.google.com",
+      },
+      next: { revalidate: 180 },
+    });
     const html = await res.text();
     const tableMatch = html.match(/<table[^>]*id="g1"[^>]*>([\s\S]*?)<\/table>/i);
     if (!tableMatch) return [];
@@ -150,9 +157,11 @@ async function fetchMatches(date: string, ibetResults: IbetResult[]): Promise<Ma
   }
 
   try {
-    const res = await fetch(`${VNRES_PROXY_URL}/match/matches_${date}.json`, {
+    const res = await fetch(`${BASE_URL}/match/matches_${date}.json`, {
+      headers: { referer: "https://socolivev.co/", "user-agent": "Mozilla/5.0", origin: BASE_URL },
       cache: "no-store",
     });
+
     const txt = await res.text();
     const m = txt.match(/matches_\d+\((.*)\)/);
     if (!m) return [];
@@ -222,7 +231,7 @@ async function fetchAllServerURLs(anchors: { anchor: { roomNum: number } }[]): P
 
 async function fetchServerURL(roomNum: number): Promise<{ m3u8: string | null; hdM3u8: string | null }> {
   try {
-    const res = await fetch(`${VNRES_PROXY_URL}/room/${roomNum}/detail.json`);
+    const res = await fetch(`${BASE_URL}/room/${roomNum}/detail.json`);
     const txt = await res.text();
     const m = txt.match(/detail\((.*)\)/);
     if (!m) return { m3u8: null, hdM3u8: null };
