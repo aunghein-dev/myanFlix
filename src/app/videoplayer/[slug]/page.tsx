@@ -2,13 +2,10 @@
 
 import { useParams, useRouter } from "next/navigation"
 import { useEffect, useState, useRef, useCallback } from "react";
-import { FaPlay } from "react-icons/fa6";
 import Spinner from "@/components/atoms/Spinner";
-import VideoPlayerNavigator from "@/components/player/VideoPlayerNavigator";
 import { MovieDetails } from "@/app/details/[slug]/page";
 import MovieDetailsAtPlayer from "@/components/layout/MovieDetailsAtPlayer";
-import VideoProgressBar from "@/components/atoms/VideoProgressBar";
-import { get } from "http";
+
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!
 const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL
@@ -60,7 +57,7 @@ export default function ProfessionalVideoPlayer() {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
-
+  const [subtitleBlobUrl, setSubtitleBlobUrl] = useState<string | null>(null);
   const loadMovieData = useCallback(async () => {
     try {
       setLoading(true);
@@ -346,43 +343,26 @@ export default function ProfessionalVideoPlayer() {
   }, [slug, loadMovieData]);
 
   useEffect(() => {
-    const updateSubtitleTrack = async () => {
-      if (!selectedTorrent || !selectedSubtitle || !movieInfo || duration <= 0) return;
+  const loadSubtitle = async () => {
+    if (!selectedTorrent || !selectedSubtitle) return;
+    try {
+      const res = await fetch(getSubtitleUrl(selectedTorrent, selectedSubtitle));
+      if (!res.ok) throw new Error("Subtitle fetch failed");
+      const vttText = await res.text();
+      const blob = new Blob([vttText], { type: "text/vtt" });
+      const url = URL.createObjectURL(blob);
+      setSubtitleBlobUrl(url);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
-      try {
-        const res = await fetch(getSubtitleUrl(selectedTorrent, selectedSubtitle));
-        if (!res.ok) throw new Error("Subtitle fetch failed");
+  loadSubtitle();
 
-        const vttText = await res.text();
-        const blob = new Blob([vttText], { type: "text/vtt" });
-        const url = URL.createObjectURL(blob);
-
-        const videoEl = videoRef.current;
-        const trackEl = videoEl?.querySelector('track') as HTMLTrackElement | null;
-        if (trackEl) {
-          if (trackEl.src.startsWith("blob:")) {
-            URL.revokeObjectURL(trackEl.src);
-          }
-          trackEl.src = url;
-          trackEl.track.mode = 'disabled'; 
-          trackEl.track.mode = 'showing';  
-        }
-      } catch (err) {
-        console.error("Failed to load subtitle:", err);
-      }
-    };
-
-    updateSubtitleTrack();
-
-
-    const videoEl = videoRef.current;
-    return () => {
-      const trackEl = videoEl?.querySelector('track') as HTMLTrackElement | null;
-      if (trackEl && trackEl.src.startsWith("blob:")) {
-        URL.revokeObjectURL(trackEl.src);
-      }
-    };
-  }, [selectedTorrent, selectedSubtitle, movieInfo, duration, subtitleOffset, getSubtitleUrl]);
+  return () => {
+    if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
+  };
+}, [selectedTorrent, selectedSubtitle, subtitleOffset]);
 
 
   useEffect(() => {
@@ -491,6 +471,7 @@ export default function ProfessionalVideoPlayer() {
           onProgress={handleProgress} 
           onClick={togglePlay}
           crossOrigin="anonymous" 
+          controls
         >
           {selectedTorrent && (
             <source
@@ -498,77 +479,16 @@ export default function ProfessionalVideoPlayer() {
               type="video/mp4"
             />
           )}
-          {selectedSubtitle && selectedTorrent && movieInfo && duration > 0 && (
+          {subtitleBlobUrl && (
             <track
-              key={`subtrack-${selectedSubtitle}-${subtitleOffset}`}
-              label={subtitleLanguages.find(lang => lang.code === selectedSubtitle)?.name || selectedSubtitle}
               kind="subtitles"
+              src={subtitleBlobUrl}
               srcLang={selectedSubtitle}
-              src={getSubtitleUrl(selectedTorrent, selectedSubtitle)}
+              label={subtitleLanguages.find(l => l.code === selectedSubtitle)?.name || selectedSubtitle}
               default
             />
           )}
-          Your browser does not support the video tag.
         </video>
-
-        {!isPlaying && !buffering && (
-          <div className="absolute inset-0 flex items-center justify-center z-10">
-            <button
-              onClick={(e) => {
-                e.stopPropagation(); 
-                togglePlay();
-              }}
-              className="flex items-center justify-center bg-[#228EE5]/90 hover:bg-[#1a7bc9] rounded-full p-6 sm:p-8 transition-all duration-200 transform hover:scale-105 opacity-90 hover:opacity-100"
-              title={videoRef.current?.paused ? "Play (k)" : "Pause (k)"}
-            >
-              <FaPlay className="w-7 h-7" />
-            </button>
-          </div>
-        )}
-
-        {showControls && (
-          <div className="absolute top-0 left-0 right-0 h-32 bg-linear-to-b from-black/70 to-transparent pointer-events-none"></div>
-        )}
-
-        {showControls && (
-          <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 to-transparent p-2 sm:p-4 z-10"
-                onMouseMove={(e) => e.stopPropagation()}>
-            <VideoProgressBar
-              currentTime={currentTime}
-              duration={duration}
-              handleSeek={handleSeek}
-            />
-
-            {/* VideoPlayerNavigator */}
-            <VideoPlayerNavigator
-              togglePlay={togglePlay}
-              isPlaying={isPlaying}
-              quickSeek={quickSeek}
-              toggleMute={toggleMute}
-              isMuted={isMuted}
-              volume={volume}
-              currentTime={currentTime}
-              duration={duration}
-              handleVolumeChange={handleVolumeChange}
-              handleOffsetChange={handleOffsetChange}
-              subtitleOffset={subtitleOffset}
-              resetSubtitleSettings={resetSubtitleSettings}
-              settingsRef={settingsRef}
-              showSettings={showSettings}
-              setShowSettings={setShowSettings}
-              toggleFullscreen={toggleFullscreen}
-              isFullscreen={isFullscreen}
-              torrents={torrents}
-              selectedTorrent={selectedTorrent}
-              handleTorrentSelect={handleTorrentSelect}
-              subtitleLanguages={subtitleLanguages}
-              selectedSubtitle={selectedSubtitle}
-              setSelectedSubtitle={setSelectedSubtitle}
-              subtitleSize={subtitleSize}
-              handleSubtitleSizeChange={handleSubtitleSizeChange}
-            />
-          </div>
-        )}
       </div>
 
      <MovieDetailsAtPlayer movieInfo={movieInfo!} subtitleLanguages={subtitleLanguages} loading={loading} />

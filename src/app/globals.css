@@ -65,3 +65,14 @@ body {
 .hide-cursor {
   cursor: none !important;
 }
+
+.fixed-bottom-safe {
+  bottom: 0;
+  padding-bottom: env(safe-area-inset-bottom); 
+}
+
+
+.fixed-top-safe {
+  top: 0;
+  padding-top: env(safe-area-inset-top); 
+}

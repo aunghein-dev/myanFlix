@@ -9,7 +9,7 @@ export default function FloatingNavbar() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800/80 backdrop-blur-sm 
-                 block sm:hidden h-[70px] flex items-center justify-around"
+                 block sm:hidden h-[70px] flex items-center justify-around fixed-bottom-safe"
     >
       {NavbarData.map((item) => {
         const isActive =

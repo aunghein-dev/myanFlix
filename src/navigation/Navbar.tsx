@@ -3,15 +3,9 @@
 import NavbarData from "../data/navbar.data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IoSearchOutline } from "react-icons/io5";
-import { IoNotifications } from "react-icons/io5";
-import { TbBrightnessUpFilled } from "react-icons/tb";
-import { RxHamburgerMenu } from "react-icons/rx";
 import Image from "next/image";
 import Search from "@/components/atoms/Search";
 import { useEffect, useState } from "react";
-import GlobalImage from "@/components/atoms/GlobalImage";
-import dayjs from "dayjs";
 import useSWR from "swr";
 import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
@@ -95,7 +89,7 @@ export default function Navbar() {
   return (
     <nav
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1 px-2
-                rounded-3xl mb-6 fixed top-4 sm:top-6
+                rounded-3xl mb-6 fixed top-2 sm:top-6
                 left-0 right-0
                 bg-black/10
                 backdrop-blur-[30px]

@@ -2,7 +2,6 @@
 import { NextResponse } from "next/server";
 import { findTeamMatch, findLeagueMatch, calculateSimilarity } from "@/lib/teamMatching";
 
-const RESULT_PARENT_URL = "https://sport.ibet288.com/_view/Result.aspx";
 const BASE_URL = "https://json.vnres.co";
 
 interface IbetResult {
@@ -108,14 +107,7 @@ async function getCachedIbetResults(): Promise<IbetResult[]> {
 
 async function fetchIbetResults(): Promise<IbetResult[]> {
   try {
-    const res = await fetch(RESULT_PARENT_URL, {
-      headers: {
-        "User-Agent": "Mozilla/5.0",
-        Accept: "text/html",
-        Referer: "https://www.google.com",
-      },
-      next: { revalidate: 180 },
-    });
+    const res = await fetch("https://proxy-ibet.aunghein-mm.workers.dev");
     const html = await res.text();
     const tableMatch = html.match(/<table[^>]*id="g1"[^>]*>([\s\S]*?)<\/table>/i);
     if (!tableMatch) return [];
