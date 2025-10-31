@@ -1,103 +1,115 @@
-import Image from "next/image";
+"use client";
+
+import HeroSection from "../components/section/HeroSection";
+import LineMovieList from "../components/layout/LineMovieList";
+import { Movie } from "../types/movie";
+import useSWR from "swr";
+import { fetcher } from "../lib/fetcher";
+import { useMemo, useState } from "react";
+import LineCharacterList from "@/components/layout/LineCharacterList";
+
+export interface TMDBResponse<T> {
+  results: T[];
+}
+
+const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
+const BASE_URL = "https://api.themoviedb.org/3";
+
+export const endpoints = {
+  hero: `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`,
+  trending: `${BASE_URL}/trending/all/day?api_key=${API_KEY}`,
+  action: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=28&sort_by=popularity.desc`,
+  adventure: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=12&sort_by=popularity.desc`,
+  kDrama: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=ko&sort_by=popularity.desc`,
+  indian: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=hi&sort_by=popularity.desc`,
+  anime: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=ja&with_genres=16&sort_by=popularity.desc`,
+  animation: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc`,
+  topRated: `${BASE_URL}/movie/top_rated?api_key=${API_KEY}`,
+};
+
+ const filterRecentMovies = (movie: Movie) => {
+  if (!movie.release_date) return false;
+  const releaseYear = new Date(movie.release_date).getFullYear();
+  const currentYear = new Date().getFullYear();
+  return releaseYear >= currentYear - 10; 
+ }
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [activeIndex, setActiveIndex] = useState(2);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const { data: heroData, isLoading: heroLoading } = useSWR<TMDBResponse<Movie>>(endpoints.hero, fetcher);
+  const { data: trendingData, isLoading: trendingLoading } = useSWR<TMDBResponse<Movie>>(endpoints.trending, fetcher);
+  const { data: actionData, isLoading: actionLoading } = useSWR<TMDBResponse<Movie>>(endpoints.action, fetcher);
+  const { data: adventureData, isLoading: adventureLoading } = useSWR<TMDBResponse<Movie>>(endpoints.adventure, fetcher);
+  const { data: kDramaData, isLoading: kDramaLoading } = useSWR<TMDBResponse<Movie>>(endpoints.kDrama, fetcher);
+  const { data: indianData, isLoading: indianLoading } = useSWR<TMDBResponse<Movie>>(endpoints.indian, fetcher);
+  const { data: animeData, isLoading: animeLoading } = useSWR<TMDBResponse<Movie>>(endpoints.anime, fetcher);
+  const { data: animationData, isLoading: animationLoading } = useSWR<TMDBResponse<Movie>>(endpoints.animation, fetcher);
+  const { data: topRatedData, isLoading: topRatedLoading } = useSWR<TMDBResponse<Movie>>(endpoints.topRated, fetcher);
+
+  const heroMovies = heroData?.results.slice(0, 5) ?? [];
+
+  if (heroMovies.length > 1) {
+    const first = heroMovies.shift(); 
+    if (first) {
+      heroMovies.splice(2, 0, first);
+    }
+  }
+
+  const activeMovie = heroMovies[activeIndex];
+
+  const trendingMovies = useMemo(
+    () => trendingData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [trendingData]
+  );
+  const actionMovies = useMemo(
+    () => actionData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [actionData]
+  );
+  const adventureMovies = useMemo(
+    () => adventureData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [adventureData]
+  );
+  const kDramaMovies = useMemo(
+    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [kDramaData]
+  );
+  const indianMovies = useMemo(
+    () => indianData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [indianData]
+  );
+  const animeMovies = useMemo(
+    () => animeData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [animeData]
+  );
+  const animationMovies = useMemo(
+    () => animationData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    [animationData]
+  );
+  const topRatedMovies = topRatedData?.results.slice(0, 20) ?? [];
+
+  
+  return (
+    <div>
+      <HeroSection
+        loading={heroLoading}
+        movies={heroMovies}
+        activeIndex={activeIndex}
+        setActiveIndex={setActiveIndex}
+        activeMovie={activeMovie}
+      />
+
+      <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 pt-3">
+        <LineMovieList title="Trending" moviesList={trendingMovies} link="/movies/categories/trending" loading={trendingLoading}/>
+        <LineMovieList title="Action" moviesList={actionMovies} link="/movies/categories/action" loading={actionLoading}/>
+        <LineMovieList title="Adventure" moviesList={adventureMovies} link="/movies/categories/adventure" loading={adventureLoading} />
+        <LineMovieList title="K-Drama" moviesList={kDramaMovies} link="/movies/categories/kdrama" loading={kDramaLoading}/>
+        <LineMovieList title="Bollywood" moviesList={indianMovies} link="/movies/categories/indian" loading={indianLoading}/>
+        <LineMovieList title="Anime" moviesList={animeMovies} link="/movies/categories/anime" loading={animeLoading}/>
+        <LineMovieList title="Animation" moviesList={animationMovies} link="/movies/categories/animation" loading={animationLoading}/>
+        <LineMovieList title="Top Rated" moviesList={topRatedMovies} link="/movies/categories/toprated" loading={topRatedLoading}/>
+        <LineCharacterList/>
+      </div>
     </div>
   );
 }
