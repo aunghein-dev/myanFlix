@@ -9,7 +9,7 @@ import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
 
-const LIVE_API = process.env.NEXT_PUBLIC_LIVE_API;
+
 export default function LivePage() {
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -18,7 +18,7 @@ export default function LivePage() {
     error,
     isLoading,
   } = useSWR<FootballMatch[]>(
-    LIVE_API,
+    "/api/live",
     fetcher,
     {
       revalidateOnFocus: true,
@@ -47,16 +47,56 @@ export default function LivePage() {
   }
   
 
-  const liveMatchesToShow = liveMatches?.filter((m) => m.match_status === "live") ?? [];
-  const upComingMatchesToShow = liveMatches?.filter((m) => m.match_status === "vs") ?? [];
-  const uefaMatchesToShow = liveMatches?.filter((m) => m.league_name === "UEFA CL") ?? [];
-  const uefaECLMatchesToShow = liveMatches?.filter((m) => m.league_name === "UEFA ECL") ?? [];
-  const uefaELMatchesToShow = liveMatches?.filter((m) => m.league_name === "UEFA EL") ?? [];
-  const engPRMatchesToShow = liveMatches?.filter((m) => m.league_name === "ENG PR") ?? [];
-  const itaSAMatchesToShow = liveMatches?.filter((m) => m.league_name === "ITA D1") ?? [];
-  const spaD1MatchesToShow = liveMatches?.filter((m) => m.league_name === "SPA D1") ?? [];
-  const gerD1MatchesToShow = liveMatches?.filter((m) => m.league_name === "GER D1") ?? [];
-  const fraD1MatchesToShow = liveMatches?.filter((m) => m.league_name === "FRA D1") ?? [];
+  const uniqueMatches = (matches: FootballMatch[] = []) => {
+    const seen = new Set<string>();
+    return matches.filter((m) => {
+      const key = m.match_time ?? `${m.home_team_name}-${m.away_team_name}-${m.league_name}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  };
+
+
+  const liveMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.match_status === "live")
+  );
+
+  const upComingMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.match_status === "vs")
+  );
+
+  const uefaMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "UEFA CL")
+  );
+
+  const uefaECLMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "UEFA ECL")
+  );
+
+  const uefaELMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "UEFA EL")
+  );
+
+  const engPRMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "ENG PR")
+  );
+
+  const itaSAMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "ITA D1")
+  );
+
+  const spaD1MatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "SPA D1")
+  );
+
+  const gerD1MatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "GER D1")
+  );
+
+  const fraD1MatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "FRA D1")
+  );
 
   return (
     <section className="relative">

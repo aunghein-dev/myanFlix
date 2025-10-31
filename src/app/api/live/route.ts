@@ -1,4 +1,3 @@
-// src/app/api/live/route.ts
 import { NextResponse } from "next/server";
 import { findTeamMatch, findLeagueMatch, calculateSimilarity } from "@/lib/teamMatching";
 
@@ -67,31 +66,40 @@ export async function GET() {
   try {
     const dates = [
       formatDate(Date.now()),
-      formatDate(Date.now() + 72_000_000), // 20 hours ahead (as previously used)
+      formatDate(Date.now() + 72_000_000), // 20 hours ahead
     ];
 
     const ibetResults = await getCachedIbetResults();
-    const matchGroups = await Promise.all(dates.map((d) => fetchMatches(d, ibetResults)));
+    const matchGroups = await Promise.all(
+      dates.map((d) => fetchMatches(d, ibetResults))
+    );
 
     const allMatches = matchGroups.flat();
 
     return NextResponse.json(allMatches, {
-      headers: { "Access-Control-Allow-Origin": "*" },
+      headers: { 
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+      },
     });
   } catch (err: unknown) {
     console.error("[API] Live fetch error:", err);
     return NextResponse.json(
       { error: "Server error", message: (err as Error).message },
-      { status: 500 }
+      { 
+        status: 500,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+        }
+      }
     );
   }
 }
 
 // --- Helpers ---
 function formatDate(ms: number): string {
-  // Produce YYYYMMDD in Asia/Yangon timezone
   const dt = new Date(ms);
-  const formatted = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Yangon" }).format(dt); // "YYYY-MM-DD"
+  const formatted = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Yangon" }).format(dt);
   return formatted.replace(/-/g, "");
 }
 
@@ -101,21 +109,38 @@ async function getCachedIbetResults(): Promise<IbetResult[]> {
   if (ibetCache && now - ibetCache.timestamp < 3 * 60 * 1000) {
     return ibetCache.data;
   }
-  const results = await fetchIbetResults();
-  ibetCache = { timestamp: now, data: results };
-  return results;
+  
+  try {
+    const results = await fetchIbetResults();
+    ibetCache = { timestamp: now, data: results };
+    return results;
+  } catch (error) {
+    console.warn("⚠️ iBet fetch failed, using cache if available:", error);
+    return ibetCache?.data || [];
+  }
 }
 
 async function fetchIbetResults(): Promise<IbetResult[]> {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
     const res = await fetch(RESULT_PARENT_URL, {
       headers: {
-        "User-Agent": "Mozilla/5.0",
-        Accept: "text/html",
-        Referer: "https://www.google.com",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.5",
+        "Referer": "https://www.google.com/",
       },
-      next: { revalidate: 180 },
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
     const html = await res.text();
     const tableMatch = html.match(/<table[^>]*id="g1"[^>]*>([\s\S]*?)<\/table>/i);
     if (!tableMatch) return [];
@@ -157,10 +182,24 @@ async function fetchMatches(date: string, ibetResults: IbetResult[]): Promise<Ma
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const res = await fetch(`${BASE_URL}/match/matches_${date}.json`, {
-      headers: { referer: "https://socolivev.co/", "user-agent": "Mozilla/5.0", origin: BASE_URL },
+      headers: { 
+        referer: "https://socolivev.co/", 
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        origin: BASE_URL 
+      },
+      signal: controller.signal,
       cache: "no-store",
     });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
 
     const txt = await res.text();
     const m = txt.match(/matches_\d+\((.*)\)/);
@@ -187,6 +226,9 @@ async function fetchMatches(date: string, ibetResults: IbetResult[]): Promise<Ma
 
         const servers = status === "live" ? await fetchAllServerURLs(it.anchors) : [];
 
+        // Fixed: Explicitly type the ibet_match value
+        const ibetMatchStatus: "FOUND" | "NOT_FOUND" = ibet.ft || ibet.ht ? "FOUND" : "NOT_FOUND";
+
         return {
           match_time: formatMatchTime(mt),
           match_status: status,
@@ -202,7 +244,7 @@ async function fetchMatches(date: string, ibetResults: IbetResult[]): Promise<Ma
             original_league: it.subCateName,
             original_home: it.hostName,
             original_away: it.guestName,
-            ibet_match: ibet.ft || ibet.ht ? "FOUND" : "NOT_FOUND",
+            ibet_match: ibetMatchStatus,
           },
         };
       })
@@ -212,31 +254,64 @@ async function fetchMatches(date: string, ibetResults: IbetResult[]): Promise<Ma
     return results;
   } catch (err: unknown) {
     console.warn(`⚠️ VNRes ${date} error:`, (err as Error).message);
-    return [];
+    return matchCache[date]?.data || [];
   }
 }
 
 // --- Fetch Servers ---
 async function fetchAllServerURLs(anchors: { anchor: { roomNum: number } }[]): Promise<ServerStream[]> {
   const results: ServerStream[] = [];
+  
+  if (!anchors || anchors.length === 0) {
+    return results;
+  }
+
   await Promise.allSettled(
     anchors.map(async (a) => {
-      const s = await fetchServerURL(a.anchor.roomNum);
-      if (s.m3u8) results.push({ name: "480p", stream_url: s.m3u8 });
-      if (s.hdM3u8) results.push({ name: "1080p", stream_url: s.hdM3u8 });
+      if (!a.anchor?.roomNum) return;
+      
+      try {
+        const s = await fetchServerURL(a.anchor.roomNum);
+        if (s.m3u8) results.push({ name: "480p", stream_url: s.m3u8 });
+        if (s.hdM3u8) results.push({ name: "1080p", stream_url: s.hdM3u8 });
+      } catch (error) {
+        console.warn(`Failed to fetch server URL for room ${a.anchor.roomNum}:`, error);
+      }
     })
   );
+  
   return results;
 }
 
 async function fetchServerURL(roomNum: number): Promise<{ m3u8: string | null; hdM3u8: string | null }> {
   try {
-    const res = await fetch(`${BASE_URL}/room/${roomNum}/detail.json`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    const res = await fetch(`https://json.vnres.co/room/${roomNum}/detail.json`, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        "Referer": "https://socolivev.co/",
+        "Origin": "https://socolivev.co",
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+
     const txt = await res.text();
     const m = txt.match(/detail\((.*)\)/);
     if (!m) return { m3u8: null, hdM3u8: null };
-    const js: { code: number; data: { stream: { m3u8?: string; hdM3u8?: string } } } = JSON.parse(m[1]);
-    return { m3u8: js.data.stream.m3u8 ?? null, hdM3u8: js.data.stream.hdM3u8 ?? null };
+    
+    const js = JSON.parse(m[1]);
+    return { 
+      m3u8: js.data?.stream?.m3u8 ?? null, 
+      hdM3u8: js.data?.stream?.hdM3u8 ?? null 
+    };
   } catch {
     return { m3u8: null, hdM3u8: null };
   }
@@ -244,16 +319,13 @@ async function fetchServerURL(roomNum: number): Promise<{ m3u8: string | null; h
 
 // --- Utilities ---
 function formatMatchTime(unixSeconds: number): string {
-  // Format time in Asia/Yangon timezone as "hh:mm AM/PM"
   const dt = new Date(unixSeconds * 1000);
-  // Use en-US to ensure AM/PM output and 12-hour clock, with 2-digit hour/minute
   const formatted = new Intl.DateTimeFormat("en-US", {
     timeZone: "Asia/Yangon",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   }).format(dt);
-  // Intl may produce "09:05 PM" or "9:05 PM"; we normalize to HH:MM AM/PM
   return formatted;
 }
 
@@ -281,6 +353,10 @@ function findIbetScore(
   home: string,
   away: string
 ): { ft: string | null; ht: string | null } {
+  if (!ibetResults || ibetResults.length === 0) {
+    return { ft: null, ht: null };
+  }
+
   const aLeague = applyAliases(findLeagueMatch(league));
   const aHome = applyAliases(findTeamMatch(home));
   const aAway = applyAliases(findTeamMatch(away));
@@ -302,3 +378,5 @@ function findIbetScore(
 
   return best && bestScore >= 0.6 ? { ft: best.ft, ht: best.ht } : { ft: null, ht: null };
 }
+
+export const dynamic = 'force-dynamic';

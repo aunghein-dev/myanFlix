@@ -30,8 +30,6 @@ export interface MovieSearchResult {
   vote_count: number;
 }
 
-
-const LIVE_API = process.env.NEXT_PUBLIC_LIVE_API;
 export default function Navbar() {
 
   const [query, setQuery] = useState("");
@@ -52,7 +50,7 @@ export default function Navbar() {
     error,
     isLoading,
   } = useSWR<FootballMatch[]>(
-    LIVE_API,
+    "/api/live",
     fetcher,
     {
       revalidateOnFocus: true,
