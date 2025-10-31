@@ -30,6 +30,8 @@ export interface MovieSearchResult {
   vote_count: number;
 }
 
+
+const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export default function Navbar() {
 
   const [query, setQuery] = useState("");
@@ -50,7 +52,7 @@ export default function Navbar() {
     error,
     isLoading,
   } = useSWR<FootballMatch[]>(
-    "/api/live",
+    LIVE,
     fetcher,
     {
       revalidateOnFocus: true,

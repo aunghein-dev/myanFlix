@@ -9,6 +9,7 @@ import { Suspense, useEffect, useRef } from "react";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import Spinner from "@/components/atoms/Spinner";
 
+const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
 function LivePlayerContent() {
   const searchParams = useSearchParams();
@@ -19,7 +20,7 @@ function LivePlayerContent() {
     error,
     isLoading,
   } = useSWR<FootballMatch[]>(
-    "/api/live",
+    LIVE,
     fetcher,
     {
       revalidateOnFocus: true,
@@ -83,7 +84,7 @@ function LivePlayerContent() {
       ref={scrollRef}
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto mt-30 px-2 sm:px-0">
 
-      <Suspense fallback={<div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4 text-white">
+      <Suspense fallback={<div className="flex flex-col items-center justify-center h-screen bg-gray-900 p-4 text-white">
         <Spinner />
       </div>}>
         {selectedMatch && <LiveStreamPlayerApp match={selectedMatch} />}

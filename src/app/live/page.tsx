@@ -9,7 +9,7 @@ import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
 
-
+const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export default function LivePage() {
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -18,7 +18,7 @@ export default function LivePage() {
     error,
     isLoading,
   } = useSWR<FootballMatch[]>(
-    "/api/live",
+    LIVE,
     fetcher,
     {
       revalidateOnFocus: true,
