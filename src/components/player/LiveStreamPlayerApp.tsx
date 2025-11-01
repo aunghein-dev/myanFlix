@@ -460,13 +460,13 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                           <span className="text-sm hidden sm:inline">Server</span>
                         </button>
                         {showServerPicker && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 min-w-32 shadow-xl z-10">
+                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-32 shadow-xl z-10 max-h-[150px] overflow-y-scroll scrollbar-hide">
                             {groupedStreams[selectedQuality]?.map(server => (
                               <button
                                 key={server.id}
                                 onClick={() => handleServerChange(server.id!)}
                                 className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
-                                  server.id === selectedServerId ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-gray-700'
+                                  server.id === selectedServerId ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
                                 }`}
                               >
                                 {server.serverName}
@@ -486,13 +486,13 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                           <span className="text-sm hidden sm:inline">Quality</span>
                         </button>
                         {showSettings && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900 border border-gray-700 rounded-lg p-2 min-w-24 shadow-xl z-10">
+                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-24 shadow-xl z-10 max-h-[200px] overflow-y-auto">
                             {availableQualities.map(quality => (
                               <button
                                 key={quality}
                                 onClick={() => handleQualityChange(quality)}
                                 className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
-                                  quality === selectedQuality ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-gray-700'
+                                  quality === selectedQuality ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
                                 }`}
                               >
                                 {quality}
