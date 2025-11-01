@@ -435,6 +435,52 @@ export default function ProfessionalVideoPlayer() {
   }, [isFullscreen, buffering]);
 
 
+
+  const handleDownloadVideo = useCallback(async () => {
+  if (!selectedTorrent || !movieInfo) return;
+
+  try {
+    // Ensure the torrent URL is properly encoded once
+    const torrentUrl = encodeURIComponent(selectedTorrent.url);
+    
+    const params = new URLSearchParams({
+      torrent: torrentUrl,
+      quality: selectedTorrent.quality,
+      title: movieInfo.title,
+      imdbId: movieInfo.imdb_id || '',
+      type: 'video/mp4'
+    });
+
+    const downloadUrl = `${TORRENT_BACKEND_URL}/download?${params.toString()}`;
+    
+    console.log('🔗 Download URL:', downloadUrl);
+    
+    // Test if the endpoint is reachable first
+    const testResponse = await fetch(`${TORRENT_BACKEND_URL}/health`);
+    if (!testResponse.ok) {
+      throw new Error('Download server is not available');
+    }
+
+    // Create and trigger download
+    const a = document.createElement('a');
+    a.href = downloadUrl;
+    a.style.display = 'none';
+    a.target = '_blank'; // Open in new tab to avoid navigation issues
+    
+    const fileExtension = selectedTorrent.type === 'bluray' ? 'mkv' : 'mp4';
+    a.download = `${movieInfo.title} (${selectedTorrent.quality}).${fileExtension}`;
+    
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+  } catch (error) {
+    console.error('❌ Download failed:', error);
+    alert(`Download failed: ${error}. Please try again later.`);
+  }
+}, [selectedTorrent, movieInfo]);
+
+
   return (
     <div className="mt-30 text-white flex justify-center items-start
                    sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-2 sm:px-0
@@ -448,8 +494,8 @@ export default function ProfessionalVideoPlayer() {
       >
         
         {selectedTorrent && showControls && (
-            <div className="absolute top-4 right-4 z-30 text-xs sm:text-sm font-semibold bg-black/70 text-white/90 px-2 py-0.5 rounded-md backdrop-blur-sm">
-                {movieInfo?.title} {selectedTorrent.quality} 
+            <div className="absolute top-4 right-4 z-30 text-xs sm:text-sm bg-black/50 text-white/90 px-2 py-2 rounded-sm backdrop-blur-sm">
+                {movieInfo?.title} - {selectedTorrent.quality} 
             </div>
         )}
 
@@ -459,6 +505,34 @@ export default function ProfessionalVideoPlayer() {
           </div>
         )}
 
+         {showControls && torrents.length > 1 && (
+          <div className="absolute bottom-16 right-4 rounded-md z-30">
+            <select
+              value={selectedTorrent?.quality}
+              onChange={(e) => {
+                const newTorrent = torrents.find((t) => t.quality === e.target.value);
+                if (newTorrent) handleTorrentSelect(newTorrent);
+              }}
+              className="bg-black/50 text-white text-xs rounded-md px-2 pr-6 py-2 appearance-none relative"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'><path d='M5.5 7l4.5 4.5L14.5 7z'/></svg>\")",
+                backgroundRepeat: "no-repeat",
+                backgroundPosition: "right 0.5rem center",
+                backgroundSize: "1rem",
+              }}
+            >
+              {torrents.map((torrent) => (
+                <option key={torrent.hash} value={torrent.quality}>
+                  {torrent.quality} ({torrent.type})
+                </option>
+              ))}
+            </select>
+
+          </div>
+        )}
+
+        
         <video
           ref={videoRef}
           className="w-full h-full border border-gray-800/20"
@@ -491,7 +565,13 @@ export default function ProfessionalVideoPlayer() {
         </video>
       </div>
 
-     <MovieDetailsAtPlayer movieInfo={movieInfo!} subtitleLanguages={subtitleLanguages} loading={loading} />
+     <MovieDetailsAtPlayer 
+        movieInfo={movieInfo!} 
+        subtitleLanguages={subtitleLanguages} 
+        loading={loading}
+        onDownload={handleDownloadVideo}
+        isDownloadable={!!selectedTorrent && !!movieInfo}
+     />
     </div>
   );
 }

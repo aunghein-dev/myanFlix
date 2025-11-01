@@ -8,6 +8,7 @@ import { Zap } from "lucide-react";
 import { Suspense, useEffect, useRef } from "react";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import Spinner from "@/components/atoms/Spinner";
+import ErrorView from "@/components/ErrorView";
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
@@ -53,10 +54,10 @@ function LivePlayerContent() {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4 text-white">
-        <h1 className="text-2xl mb-4">Error loading matches</h1>
-        <p className="text-gray-400">Please try again later</p>
-      </div>
+      <ErrorView
+        title="Something went wrong"
+        description="It looks like no internet connection. Please try again."
+      />
     );
   }
 
@@ -70,9 +71,10 @@ function LivePlayerContent() {
 
   if (!selectedMatch) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4 text-white">
-        <h1 className="mb-4 text/white/20 text-sm">Match not found or not live</h1>
-      </div>
+      <ErrorView
+        title="Match not found"
+        description="The match you are looking for could not be found."
+      />
     );
   }
 
@@ -91,7 +93,7 @@ function LivePlayerContent() {
       </Suspense>
 
       <div className="w-full h-30 mb-4 mt-8 bg-gray-800/20 rounded-xl shadow-lg border border-gray-700/20 flex flex-row items-center justify-between sm:mx-0">
-        <div className="flex items-center space-x-3 mb-3 sm:mb-0 w-50 pl-2">
+        <div className="flex items-center sm:gap-x-1.5 gap-x-1 mb-3 sm:mb-0 w-50 pl-2">
           <Zap className="w-5 h-5 text-red-500 animate-pulse" />
           <span className="text-sm font-bold text-red-500 uppercase">
             {selectedMatch.match_status}
@@ -101,9 +103,9 @@ function LivePlayerContent() {
           </span>
         </div>
 
-        <div className="flex items-center justify-center space-x-6 w-full sm:w-auto">
+        <div className="flex items-center justify-center sm:space-x-4 gap-x-1 w-full sm:w-auto sm:px-4">
           {/* Home Team */}
-          <div className="flex flex-col items-center sm:w-24 w-18">
+          <div className="flex flex-col items-center sm:w-24 w-20">
             <GlobalImage
               src={selectedMatch.home_team_logo}
               alt={selectedMatch.home_team_name}
@@ -118,14 +120,14 @@ function LivePlayerContent() {
           </div>
 
           {/* Score */}
-          <div className="flex flex-col items-center px-4">
-            <div className="text-3xl font-extrabold text-white">
+          <div className="flex flex-col items-center sm:px-2 px-1 w-18 sm:w-30">
+            <div className="sm:text-3xl text-lg font-extrabold text-white">
               {currentScore}
             </div>
           </div>
 
           {/* Away Team */}
-          <div className="flex flex-col items-center sm:w-24 w-18">
+          <div className="flex flex-col items-center sm:w-24 w-20">
             <GlobalImage
               src={selectedMatch.away_team_logo}
               alt={selectedMatch.away_team_name}

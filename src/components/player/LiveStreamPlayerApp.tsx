@@ -239,14 +239,14 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   const hideTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    const scheduleHide = () => {
-      if (hideTimeout.current) clearTimeout(hideTimeout.current);
-      hideTimeout.current = setTimeout(() => {
-        if (isPlaying && !showSettings && !showServerPicker) { 
-          setIsControlsVisible(false);
-        }
-      }, 3000);
-    };
+   const scheduleHide = () => {
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      hideTimeout.current = setTimeout(() => {
+        if (isPlaying && !showSettings && !showServerPicker) { 
+          setIsControlsVisible(false);
+        }
+      }, 3000);
+    };
 
     const handleInteraction = () => {
       setIsControlsVisible(true);
@@ -270,17 +270,24 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   }, [isPlaying, showSettings, showServerPicker]);
 
 
-  // Fullscreen & Cursor Visibility - Kept as is
-  const toggleFullScreen = useCallback(() => {
-    const container = containerRef.current;
-    if (!container) return;
 
-    if (!document.fullscreenElement) {
-      container.requestFullscreen().catch(console.error);
-    } else {
-      document.exitFullscreen().catch(console.error);
-    }
-  }, []);
+  const toggleFullScreen = useCallback(() => {
+    const video = videoRef.current; 
+    const container = containerRef.current;
+
+    if (!video) return;
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(console.error);
+    } else {
+      video.requestFullscreen({ navigationUI: "auto" }) 
+            .then(() => {
+            })
+            .catch((err) => {
+                console.warn("Failed to enter fullscreen via JS:", err);
+            });
+    }
+  }, []);
 
   useEffect(() => {
     const handleFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
@@ -382,7 +389,10 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     >
       <video
         ref={videoRef}
-        onClick={togglePlay}
+        onClick={(e) => {
+        setIsControlsVisible(true); 
+        togglePlay();
+        }}
         className="w-full h-full object-contain cursor-pointer bg-black"
         playsInline
         autoPlay
@@ -472,7 +482,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                           onClick={() => { setShowSettings(p => !p); setShowServerPicker(false); }}
                           className="text-white hover:bg-white/20 rounded-lg px-3 py-2 transition-colors flex items-center space-x-2"
                         >
-                          <Video size={16} />
+                          <Video size={22} />
                           <span className="text-sm hidden sm:inline">Quality</span>
                         </button>
                         {showSettings && (

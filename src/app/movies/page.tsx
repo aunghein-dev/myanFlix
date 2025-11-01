@@ -267,7 +267,7 @@ export default function MoviesPage() {
 
   return (
     <section className="mx-auto mb-8 max-w-6xl px-1 sm:px-2 md:max-w-3xl lg:max-w-5xl">
-      <div className="min-h-[110px]"></div>
+      <div className="sm:min-h-[110px] min-h-20"></div>
       <div className="">
         {CATEGORY_CONFIGS.map((c) => (
           <LineMovieList

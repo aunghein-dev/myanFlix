@@ -164,7 +164,7 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
   return (
     <div
       style={{ "--border-color": homeColor } as React.CSSProperties}
-      className="w-[340px] h-52 flex-shrink-0 group relative cursor-pointer border rounded-lg overflow-hidden flex flex-row 
+      className="sm:w-[340px] sm:h-52 w-[300px] h-40 flex-shrink-0 group relative cursor-pointer border rounded-lg overflow-hidden flex flex-row 
                 transition-all duration-500 ease-out 
                 hover:[border-color:var(--border-color)] hover:[box-shadow:0_0_3px_var(--border-color)]"
     >
@@ -211,27 +211,28 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
                 unoptimized
                 src={match.home_team_logo}
                 alt={match.home_team_name}
-                className="object-contain h-auto max-h-16 hover:scale-105 transition-transform duration-300"
+                className="object-contain h-auto sm:max-h-16 max-h-12 hover:scale-105 transition-transform duration-300"
                 onError={() => handleImageError("home")}
                 priority // Add priority for above-the-fold images
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <span className="text-xs text-white text-center px-2 font-medium">
+                <span className="sm:text-xs text-[0.6rem] text-white text-center px-2 font-medium">
                   {match.home_team_name}
                 </span>
               </div>
             )}
           </div>
-          <span className="text-white text-xs font-medium mt-2 text-center max-w-[120px] truncate">
+          <span className="text-white sm:text-xs text-[0.6rem] font-medium mt-2 text-center max-w-[120px] truncate">
             {match.home_team_name}
           </span>
         </div>
 
 
         <div className="flex flex-col items-center justify-center px-4">
-          <div className="bg-white/20 backdrop-blur-xs rounded-full w-16 h-16 flex items-center justify-center border border-white/30">
-            <span className="text-white font-extrabold">
+          <div className="bg-white/20 backdrop-blur-xs rounded-full sm:w-16 sm:h-16
+                        w-12 h-12 flex items-center justify-center border border-white/30">
+            <span className="text-white font-extrabold sm:text-md text-xs">
               {match.match_status === "vs" ? "VS" : match.match_score===null ? match.ht_score === null ? "LIVE" : match.ht_score : match.match_score}
             </span>
           </div>
@@ -247,19 +248,19 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
                 unoptimized
                 src={match.away_team_logo}
                 alt={match.away_team_name}
-                className="object-contain h-auto max-h-16 hover:scale-105 transition-transform duration-300"
+                className="object-contain h-auto sm:max-h-16 max-h-12 hover:scale-105 transition-transform duration-300"
                 onError={() => handleImageError("away")}
                 priority // Add priority for above-the-fold images
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <span className="text-xs text-white text-center px-2 font-medium">
+                <span className="sm:text-xs text-[0.6rem] text-white text-center px-2 font-medium">
                   {match.away_team_name}
                 </span>
               </div>
             )}
           </div>
-          <span className="text-white text-xs font-medium mt-2 text-center max-w-[120px] truncate">
+          <span className="text-white sm:text-xs text-[0.6rem] font-medium mt-2 text-center max-w-[120px] truncate">
             {match.away_team_name}
           </span>
         </div>
@@ -267,7 +268,7 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
 
       {/* League name at bottom */}
       <div className="absolute bottom-2 left-0 right-0 text-center">
-        <span className="text-white/80 text-xs font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
+        <span className="text-white/80 sm:text-xs text-[0.6rem] font-medium bg-black/30 backdrop-blur-sm px-3 py-1 rounded-full border border-white/10">
           {match.league_name}
         </span>
       </div>

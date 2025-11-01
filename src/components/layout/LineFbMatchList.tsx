@@ -73,14 +73,14 @@ export default function LineFbMatchList({
       ) : (
         <div className="relative">
           <div className="flex justify-between items-center py-3">
-            <h1 className="text-white text-2xl font-semibold">
+            <h1 className="text-white sm:text-2xl text-md font-semibold">
               {logo && (
                 <Image
                   src={logo}
                   alt={`${title} Logo`}
                   width={30}
                   height={30}
-                  className="inline-block mr-2 mb-1"
+                  className="inline-block sm:mr-2 mr-1 mb-1"
                 />
               )}
               {title}

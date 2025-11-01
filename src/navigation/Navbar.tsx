@@ -10,6 +10,7 @@ import useSWR from "swr";
 import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
 import SearchModal from "@/components/model/SearchModal";
+import GlobalImage from "@/components/atoms/GlobalImage";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 
@@ -69,11 +70,13 @@ export default function Navbar() {
   }
 
 
-  const allowRoutes = ["/", "/movies"];
+ const allowRoutes = ["/", "/movies", "/videoplayer", "/details"];
 
   const isAllowedPage =
-      allowRoutes.includes(pathname) ||
-      pathname.startsWith("/details/");
+    allowRoutes.includes(pathname) ||
+    pathname.startsWith("/details/") ||
+    pathname.startsWith("/videoplayer/");
+
 
   useEffect(() => {
     if (!isAllowedPage) {
@@ -104,7 +107,8 @@ export default function Navbar() {
                 hover:shadow-lg shadow-white/15
                 transition-shadow duration-300
                 cursor-pointer
-                min-h-[78px]
+                sm:min-h-[78px]
+                min-h-[60px]
                 z-1000
                 mx-1"
     >
@@ -112,7 +116,7 @@ export default function Navbar() {
 
         <div className="flex items-center">
           <Link href="/">
-            <Image
+            <GlobalImage
               width={72}
               height={72}
               unoptimized

@@ -143,7 +143,7 @@ export default function LineCharacterList() {
   return (
     <div className="relative">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="text-white text-2xl font-semibold">Characters</h2>
+        <h1 className="text-white sm:text-2xl text-lg font-semibold">Characters</h1>
 
         <div className="flex border border-[#228ee5]/80 rounded-3xl overflow-hidden">
           {options.map((option, index) => (

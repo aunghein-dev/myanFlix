@@ -1,22 +1,30 @@
 import { MovieDetails } from "@/app/details/[slug]/page";
 import { SubtitleLanguage } from "@/app/videoplayer/[slug]/page";
 import { numberToHourMinute } from "@/utils/numberToHourMinute";
-import dayjs from "dayjs";
 import { FaStar } from "react-icons/fa";
 import { MdSubtitles } from "react-icons/md";
 import { PiFilmReelFill } from "react-icons/pi";
 import { RiDownloadLine } from "react-icons/ri";
 import Spinner from "../atoms/Spinner";
 
+export interface MovieDetailsAtPlayerProps {
+  movieInfo: MovieDetails;
+  subtitleLanguages: SubtitleLanguage[];
+  loading: boolean;
+  onDownload?: () => void;
+  isDownloadable?: boolean;
+}
 
-export default function MovieDetailsAtPlayer({ movieInfo, subtitleLanguages, loading} : { movieInfo: MovieDetails, subtitleLanguages: SubtitleLanguage[], loading: boolean }) {
+export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
+
+  const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
   return (
     <>
       {loading ? (
 
         <Spinner className="min-h-[100px] flex items-center justify-center mt-20"/>
       ) : (
-      <div className="flex flex-col items-left justify-center mb-8 border-t border-gray-800/40 pt-4  w-full">
+      <div className="flex flex-col items-left justify-center mb-8 border-t border-gray-800/40 pt-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 items-center">
           <div className="flex flex-col">
             <h1 className="text-3xl font-bold mt-6 mb-2 text-white">{movieInfo?.title}</h1>
@@ -61,13 +69,17 @@ export default function MovieDetailsAtPlayer({ movieInfo, subtitleLanguages, loa
           </div>
         </div>
         <span className="text-gray-300/70 text-sm mb-6">{movieInfo?.overview}</span>
-        <button className="bg-gray-800 w-50 gap-2 p-2 rounded-md
-                            flex flex-row items-center justify-center
-                          text-slate-400 text-sm hover:bg-gray-900 transition-all ease-in-out
-                          duration-300 cursor-pointer">
-          <RiDownloadLine className="w-4 h-4" />
-          Download this video
-        </button>
+
+        {isDownloadable && onDownload && (
+          <button className="bg-gray-800 w-43 py-2.5 gap-2 rounded-md
+                              flex flex-row items-center justify-center
+                            text-slate-400 text-sm hover:bg-gray-900 transition-all ease-in-out
+                            duration-300 cursor-pointer"
+            onClick={onDownload}>
+            <RiDownloadLine className="w-4 h-4" />
+            Download this video
+          </button> 
+        )}
       </div>
       )}
     </>

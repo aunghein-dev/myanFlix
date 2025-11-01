@@ -8,6 +8,7 @@ import { PicksResponse } from "@/types/matchpick";
 import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
+import ErrorView from "@/components/ErrorView";
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export default function LivePage() {
@@ -36,13 +37,17 @@ export default function LivePage() {
     errorRetryCount: 3,
   });
 
-  const picks = picksData?.matches.filter((m) => m.home !== "Live Game" || m.away !== "Live Game") ?? [];
+  const picks = picksData?.matches.filter(
+      (m) => m.home !== "Live Game" && m.away !== "Live Game"
+    ) ?? [];
+  
 
   if (error) {
     return (
-      <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2">
-        <div className="text-red-500 text-center">Error loading live matches</div>
-      </div>
+      <ErrorView
+        title="Matches not found"
+        description="We searched everywhere but couldn’t find what you’re looking for."
+      />
     );
   }
   

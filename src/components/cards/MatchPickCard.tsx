@@ -1,6 +1,7 @@
 import { PickMatch } from "@/types/matchpick";
 import Image from "next/image";
 import { TrendingUp, Target, BarChart3 } from "lucide-react";
+import GlobalImage from "../atoms/GlobalImage";
 
 interface MatchPickCardProps {
   match: PickMatch;
@@ -34,17 +35,17 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
         <div className="flex flex-col items-center space-y-3 flex-1">
           <div className="relative group">
             <div className="absolute -inset-2 bg-cyan-500/10 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <Image
+            <GlobalImage
               unoptimized
               src={getFullImageUrl(match.home_logo)}
               alt={`${match.home} logo`}
               width={100}
               height={100}
-              className="relative z-10 transition-all duration-300 group-hover:scale-105"
+              className="relative z-10 transition-all duration-300 group-hover:scale-105  h-15 w-15 sm:h-[100px] sm:w-[100px]"
             />
           </div>
           <div className="text-center">
-            <h3 className="text-xl font-bold truncate max-w-[140px]">{match.home}</h3>
+            <h3 className="sm:text-xl text-sm font-bold truncate max-w-[140px]">{match.home}</h3>
             {match.win_pick === "1" && (
               <div className="inline-flex items-center space-x-1 mt-1 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30">
                 <TrendingUp className="w-3 h-3" />
@@ -68,17 +69,17 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
         <div className="flex flex-col items-center space-y-3 flex-1">
           <div className="relative group">
             <div className="absolute -inset-2 bg-blue-500/10 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <Image
+            <GlobalImage
               unoptimized
               src={getFullImageUrl(match.away_logo)}
               alt={`${match.away} logo`}
               width={100}
               height={100}
-              className="relative z-10 transition-all duration-300 group-hover:scale-105"
+              className="relative z-10 transition-all duration-300 group-hover:scale-105 h-15 w-15 sm:h-[100px] sm:w-[100px]"
             />
           </div>
           <div className="text-center">
-            <h3 className="text-xl font-bold truncate max-w-[140px]">{match.away}</h3>
+            <h3 className="sm:text-xl text-sm font-bold truncate max-w-[140px]">{match.away}</h3>
             {match.win_pick === "2" && (
               <div className="inline-flex items-center space-x-1 mt-1 px-3 py-1 rounded-full bg-green-500/20 border border-green-500/30">
                 <TrendingUp className="w-3 h-3" />
@@ -90,8 +91,8 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
       </div>
 
       <div className="mb-3 flex flex-col items-center space-y-1">
-        <span className="text-slate-300/80 text-sm">{match.date_time}</span>
-        <span className="text-xl font-extrabold">{match.league}</span>
+        <span className="text-slate-300/80 sm:text-sm text-xs">{match.date_time}</span>
+        <span className="sm:text-xl text-sm font-extrabold">{match.league}</span>
       </div>
 
       <div className="w-full">
@@ -99,9 +100,9 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
           <div className={`p-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-[2px] min-w-[160px]`}>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <Target className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-semibold">Winner</span>
+              <span className="sm:text-sm text-xs font-semibold">Winner</span>
             </div>
-            <div className={`text-lg font-bold line-clamp-1 ${getConfidenceColor(match.win_percent)}`}>
+            <div className={`sm:text-lg text-sm  font-bold line-clamp-1 ${getConfidenceColor(match.win_percent)}`}>
               {match.win_pick === "1" ? match.home : match.away}
             </div>
             <div className="text-xs text-white/70 mt-1">{match.win_percent} confidence</div>
@@ -111,9 +112,9 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
           <div className={`p-4 rounded-2xl border border-white/10 bg-white/10 min-w-[160px]`}>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <BarChart3 className="w-4 h-4 text-amber-400" />
-              <span className="text-sm font-semibold">BTTS</span>
+              <span className="sm:text-sm text-xs font-semibold">BTTS</span>
             </div>
-            <div className={`text-lg font-bold ${getConfidenceColor(match.btts_percent)}`}>
+            <div className={`sm:text-lg text-sm font-bold ${getConfidenceColor(match.btts_percent)}`}>
               {match.btts_pick}
             </div>
             <div className="text-xs text-white/70 mt-1">{match.btts_percent} confidence</div>
@@ -123,9 +124,9 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
           <div className={`p-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-[2px] min-w-[160px]`}>
             <div className="flex items-center justify-center space-x-2 mb-2">
               <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-sm font-semibold">Correct Score</span>
+              <span className="sm:text-sm text-xs font-semibold">Correct Score</span>
             </div>
-            <div className={`text-lg font-bold ${getConfidenceColor(match.cs_percent)}`}>
+            <div className={`sm:text-lg text-sm font-bold ${getConfidenceColor(match.cs_percent)}`}>
               {match.cs_pick}
             </div>
             <div className="text-xs text-white/70 mt-1">{match.cs_percent} confidence</div>
@@ -133,8 +134,8 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
 
           {/* Over/Under 2.5 */}
           <div className={`p-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-[2px] min-w-[160px]`}>
-            <div className="text-sm font-semibold mb-2">O/U 2.5</div>
-            <div className={`text-lg font-bold ${getConfidenceColor(match.ou_2_5_percent)}`}>
+            <div className="sm:text-sm text-xs font-semibold mb-2">O/U 2.5</div>
+            <div className={`sm:text-lg text-sm  font-bold ${getConfidenceColor(match.ou_2_5_percent)}`}>
               {match.ou_2_5_pick}
             </div>
             <div className="text-xs text-white/70 mt-1">{match.ou_2_5_percent} confidence</div>
@@ -142,8 +143,8 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
 
 
           <div className={`p-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-[2px] min-w-[160px]`}>
-            <div className="text-sm font-semibold mb-2">O/U 3.5</div>
-            <div className={`text-lg font-bold ${getConfidenceColor(match.ou_3_5_percent)}`}>
+            <div className="sm:text-sm text-xs  font-semibold mb-2">O/U 3.5</div>
+            <div className={`sm:text-lg text-sm font-bold ${getConfidenceColor(match.ou_3_5_percent)}`}>
               {match.ou_3_5_pick}
             </div>
             <div className="text-xs text-white/70 mt-1">{match.ou_3_5_percent} confidence</div>

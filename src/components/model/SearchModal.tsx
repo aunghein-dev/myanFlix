@@ -16,7 +16,7 @@ export default function SearchModal(props : Props) {
   const { result, liveResult, query, isAllowedPage, setQuery } = props;
   return (
     <>
-      <div className="absolute left-0 top-16 right-0 bg-black/90 min-h-20
+      <div className="absolute -left-[100px] top-16 right-0 bg-black/90 min-h-20
                             z-50 hover:shadow-lg shadow-white/15
                             rounded-xl flex flex-col overflow-y-scroll max-h-[400px]">
         {
