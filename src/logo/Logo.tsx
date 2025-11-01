@@ -98,7 +98,7 @@ const Logo: React.FC<LogoProps> = ({
   width = 24,
   height = 24,
   className,
-  color = "currentColor",
+  color = "#000",
 }) => {
   const logoPath = logos[name];
 

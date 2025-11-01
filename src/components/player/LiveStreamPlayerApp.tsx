@@ -34,7 +34,6 @@ export interface GroupedStreams {
 const groupServers = (servers: StreamServer[]): GroupedStreams => {
   const grouped: GroupedStreams = {};
   servers.forEach((server, index) => {
-    // Corrected quality extraction to handle formats like "720p HD" or "1080P"
     const quality = (server.name.toLowerCase().match(/(\d+p)/) || [null, ''])[1] || 'auto'; 
     if (!grouped[quality]) grouped[quality] = [];
     grouped[quality].push({ 
@@ -46,52 +45,42 @@ const groupServers = (servers: StreamServer[]): GroupedStreams => {
   return grouped;
 };
 
-// =========================================================================
-// 🚀 FIXED useHlsPlayer HOOK FOR PERSISTENT RETRIES
-// =========================================================================
+// --- useHlsPlayer Hook --- (Keep as is)
 const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, streamUrl: string | undefined) => {
   const hlsRef = useRef<Hls | null>(null);
   const retryCountRef = useRef(0);
-  const maxRetries = 10; // Max attempts before stopping
-  const retryInterval = 3000; // 3 seconds between attempts
+  const maxRetries = 10;
+  const retryInterval = 3000;
 
   const setupStream = useCallback(() => {
     const video = videoRef.current;
     if (!video || !streamUrl) return;
 
-    // Destroy existing HLS instance before loading a new stream
     if (hlsRef.current) {
       hlsRef.current.destroy();
       hlsRef.current = null;
     }
     
-    // Attempt to start playing immediately (even before manifest parsed, HLS will attach)
     video.play().catch(e => console.log("Autoplay attempt:", e));
 
     if (Hls.isSupported()) {
       const hls = new Hls();
       hlsRef.current = hls;
-
       hls.loadSource(streamUrl);
       hls.attachMedia(video);
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        // SUCCESS: Reset the retry counter
         retryCountRef.current = 0; 
         video.play().catch(e => console.log("Autoplay blocked (HLS):", e));
       });
 
       hls.on(Hls.Events.ERROR, (_, data: ErrorData) => {
         console.warn("HLS Error:", data.type, data);
+        if (!data.fatal) return;
 
-        if (!data.fatal) return; // Only handle fatal errors
-
-        // Persistent Retry Logic
         if (retryCountRef.current < maxRetries) {
           retryCountRef.current++;
           console.log(`Fatal HLS Error. Retry attempt ${retryCountRef.current}/${maxRetries} in ${retryInterval}ms...`);
-          
-          // Use setTimeout to pause before calling setupStream again (full reload)
           setTimeout(setupStream, retryInterval); 
         } else {
           console.error("Max retries reached, stream is unrecoverable.");
@@ -99,7 +88,6 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native browser playback (e.g., Safari)
       video.src = streamUrl;
       video.play().catch(e => console.log("Autoplay blocked (native):", e));
     } else {
@@ -107,7 +95,6 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
     }
   }, [streamUrl, videoRef]);
 
-  // Initial stream setup and cleanup on unmount/streamUrl change
  useEffect(() => {
     setupStream();
     return () => {
@@ -118,12 +105,31 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
     };
   }, [setupStream]);
 
-  // Expose setupStream as refreshStream and reloadStream
   const refreshStream = () => setupStream();
   const reloadStream = () => setupStream();
 
   return { refreshStream, reloadStream };
 };
+
+// =========================================================================
+// 🚀 TYPESAFE AUGMENTATIONS FOR iOS FULLSCREEN
+// =========================================================================
+/**
+ * Extends the standard HTMLVideoElement interface to include
+ * the WebKit-prefixed method for iOS Safari fullscreen.
+ */
+interface WebKitVideoElement extends HTMLVideoElement {
+  webkitEnterFullscreen?: () => void;
+}
+
+/**
+ * Extends the standard Document interface to include
+ * WebKit-prefixed properties and methods for iOS Safari fullscreen.
+ */
+interface WebKitDocument extends Document {
+  webkitFullscreenElement?: Element;
+  webkitExitFullscreen?: () => void;
+}
 
 
 // --- Component ---
@@ -136,7 +142,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const groupedStreams = groupServers(match.servers);
-  // Sort: descending by number, 'auto' last
   const availableQualities = Object.keys(groupedStreams).sort((a, b) => {
     if (a === 'auto') return 1;
     if (b === 'auto') return -1;
@@ -165,8 +170,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
 
   const { refreshStream, reloadStream } = useHlsPlayer(videoRef, activeStreamUrl);
   
-  // Force reload when server or quality changes (using the aggressive reloadStream)
-  // We remove the defaultQuality/defaultServer checks here to ensure state changes trigger reload
   useEffect(() => {
     if (activeStreamUrl) {
       reloadStream();
@@ -174,7 +177,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeStreamUrl, selectedServerId, selectedQuality]); 
   
-  // Initialize video element properties
   useEffect(() => {
     const video = videoRef.current;
     if (video) {
@@ -183,7 +185,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     }
   }, [volume, isMuted]);
 
-  // Handle re-grouping/defaults when `match` prop updates
   useEffect(() => {
     const newGrouped = groupServers(match.servers);
     const newQualities = Object.keys(newGrouped).sort((a, b) => {
@@ -201,7 +202,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   }, [match]);
 
 
-  // Video event handlers
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -209,14 +209,12 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
-    // HLS playing/waiting events are critical for buffering indicator
     const handleWaiting = () => setIsBuffering(true);
     const handlePlaying = () => setIsBuffering(false);
     const handleVolumeChange = () => {
         setVolume(video.volume);
         setIsMuted(video.muted);
     };
-
 
     video.addEventListener('play', handlePlay);
     video.addEventListener('pause', handlePause);
@@ -235,7 +233,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     };
   }, []);
 
-  // Controls Visibility (Autohide) - Kept as is
   const hideTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
@@ -269,30 +266,63 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     };
   }, [isPlaying, showSettings, showServerPicker]);
 
-
-
+  // =========================================================================
+  // 🚀 TYPESAFE toggleFullScreen FOR iOS SUPPORT
+  // =========================================================================
   const toggleFullScreen = useCallback(() => {
-    const video = videoRef.current; 
-    const container = containerRef.current;
+    // Cast to our augmented types
+    const video = videoRef.current as WebKitVideoElement | null;
+    const doc = document as WebKitDocument;
 
-    if (!video) return;
+    if (!video) return;
 
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(console.error);
-    } else {
-      video.requestFullscreen({ navigationUI: "auto" }) 
-            .then(() => {
-            })
-            .catch((err) => {
-                console.warn("Failed to enter fullscreen via JS:", err);
-            });
-    }
-  }, []);
+    // Check if *any* fullscreen mode is active (standard or webkit)
+    const isVideoInFullScreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
 
+    if (isVideoInFullScreen) {
+      // Exit fullscreen
+      if (doc.exitFullscreen) {
+        doc.exitFullscreen().catch(console.error);
+      } else if (doc.webkitExitFullscreen) { // Safari
+        doc.webkitExitFullscreen(); // This method doesn't return a promise on older Safari
+      }
+    } else {
+      // Enter fullscreen
+      if (video.requestFullscreen) {
+        video.requestFullscreen({ navigationUI: "auto" })
+          .catch((err) => {
+            console.warn("Standard requestFullscreen failed, trying webkit...", err);
+            // Fallback for iOS Safari
+            if (video.webkitEnterFullscreen) {
+              video.webkitEnterFullscreen();
+            }
+          });
+      } else if (video.webkitEnterFullscreen) { // Direct call for iOS Safari
+        video.webkitEnterFullscreen();
+      } else {
+        console.error("Fullscreen API not supported in this browser.");
+      }
+    }
+  }, []);
+
+  // =========================================================================
+  // 🚀 TYPESAFE Fullscreen Event Listener FOR iOS SUPPORT
+  // =========================================================================
   useEffect(() => {
-    const handleFullscreenChange = () => setIsFullScreen(!!document.fullscreenElement);
+    const handleFullscreenChange = () => {
+      // Cast to our augmented type
+      const doc = document as WebKitDocument;
+      setIsFullScreen(!!(doc.fullscreenElement || doc.webkitFullscreenElement));
+    };
+    
+    // Listen to *both* the standard event and the WebKit-prefixed event
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
   
   useEffect(() => {
@@ -307,7 +337,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   }, [isFullScreen, isControlsVisible]);
 
 
-  // Play/pause, Mute/volume, Quality/Server Handlers - Kept as is
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -321,6 +350,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     video.muted = !isMuted;
     setIsMuted(!isMuted);
   };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseFloat(e.target.value);
     const video = videoRef.current;
@@ -360,7 +390,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     }
   };
 
-  // Keyboard shortcuts - Kept as is
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -399,14 +428,12 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
         muted={isMuted} 
       />
 
-      {/* Buffering spinner */}
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <Spinner />
         </div>
       )}
 
-      {/* Controls Overlay */}
       <div 
         className={`absolute inset-0 transition-opacity duration-300 ${
           isControlsVisible ? 'opacity-100 ' : 'opacity-0 pointer-events-none group-hover:opacity-100'
@@ -414,7 +441,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
       >
         {isControlsVisible && (
             <div className="pointer-events-auto w-full h-full relative"> 
-                {/* Top Controls */}
                 <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
                   <div className="flex items-center space-x-2 bg-black/50 rounded-lg px-3 py-1">
                     <div className="w-2 h-2 bg-[#228EE5] rounded-full animate-pulse" />
@@ -424,10 +450,8 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                 </div>
 
                <div className="h-[100px] absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent"/>
-                {/* Bottom Controls */}
                 <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent">
                   <div className="flex items-center justify-between">
-                    {/* Left Controls */}
                     <div className="flex items-center space-x-3">
                       <button onClick={togglePlay} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
                         {isPlaying ? <Pause size={20} /> : <Play size={20} />}
@@ -448,9 +472,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                       </div>
                     </div>
 
-                    {/* Right Controls */}
                     <div className="flex items-center space-x-2">
-                      {/* Server Picker */}
                       <div className="relative">
                         <button
                           onClick={() => { setShowServerPicker(p => !p); setShowSettings(false); }}
@@ -476,7 +498,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                         )}
                       </div>
 
-                      {/* Quality Picker */}
                       <div className="relative">
                         <button
                           onClick={() => { setShowSettings(p => !p); setShowServerPicker(false); }}
@@ -502,12 +523,10 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
                         )}
                       </div>
 
-                      {/* Refresh */}
                       <button onClick={refreshStream} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title="Refresh Stream">
                         <RotateCw size={20} />
                       </button>
 
-                      {/* Fullscreen */}
                       <button onClick={toggleFullScreen} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title={isFullScreen ? "Exit Fullscreen (f)" : "Enter Fullscreen (f)"}>
                         {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
                       </button>

@@ -102,7 +102,7 @@ export default function LineCharacterList() {
     };
 
     fetchDirectors();
-  }, [moviesData, apiKey]);
+  }, [moviesData]);
 
   const actors: Person[] = actorsData
     ? actorsData

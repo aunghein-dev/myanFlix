@@ -9,7 +9,7 @@ export default function FloatingNavbar() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-50 bg-gray-800/80 backdrop-blur-sm 
-                 block sm:hidden h-[70px] flex items-center justify-around fixed-bottom-safe"
+                 block sm:hidden h-[58px] flex items-center justify-around fixed-bottom-safe"
     >
       {NavbarData.map((item) => {
         const isActive =
@@ -22,12 +22,12 @@ export default function FloatingNavbar() {
           <Link
             key={item.id}
             href={item.href}
-            className={`relative flex flex-col items-center text-sm font-medium transition-colors duration-300
+            className={`relative flex flex-col items-center text-xs font-medium transition-colors duration-300
                         hover:text-[#228EE5] ${
                           isActive ? "text-[#228EE5]" : "text-white/95"
                         }`}
           >
-            <Icon size={24} />
+            <Icon size={20} />
             <span>{item.name}</span>
 
             

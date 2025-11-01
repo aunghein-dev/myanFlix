@@ -7,13 +7,13 @@ import dayjs from "dayjs";
 interface Props {
   result: MovieSearchResult[],
   liveResult: FootballMatch[],
-  query: string,
+  query?: string,
   isAllowedPage: boolean,
   setQuery: (q: string) => void
 }
 
 export default function SearchModal(props : Props) {
-  const { result, liveResult, query, isAllowedPage, setQuery } = props;
+  const { result, liveResult, isAllowedPage, setQuery } = props;
   return (
     <>
       <div className="absolute -left-[100px] top-16 right-0 bg-black/90 min-h-20

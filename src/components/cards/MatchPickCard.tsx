@@ -1,5 +1,4 @@
 import { PickMatch } from "@/types/matchpick";
-import Image from "next/image";
 import { TrendingUp, Target, BarChart3 } from "lucide-react";
 import GlobalImage from "../atoms/GlobalImage";
 

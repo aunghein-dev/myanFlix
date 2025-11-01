@@ -1,17 +1,19 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { IoSearchOutline } from "react-icons/io5";
 import { RxCross2 } from "react-icons/rx";
 
 interface SearchProps {
   query: string;
   setQuery: (q: string) => void;
-  isAllowedPage: boolean
+  isAllowedPage: boolean;
+  focused: boolean;
+  setFocused: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const Search = ({ query, setQuery, isAllowedPage}: SearchProps) => {
-  const [focused, setFocused] = useState(false);
+const Search = (props: SearchProps) => {
+  
   const inputRef = useRef<HTMLInputElement>(null);
-
+  const { query, setQuery, isAllowedPage, focused, setFocused } = props;
   const shouldExpand = focused || query.length > 0;
 
   return (

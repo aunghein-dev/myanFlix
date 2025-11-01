@@ -45,16 +45,16 @@ export default function DetailsInfoOnHero({ selectedMovie }: { selectedMovie: Mo
       </div>
 
       <div className="flex flex-row items-center mt-8 sm:mt-0">
-        <Link className="text-white flex flex-row items-center 
+        <Link className="text-white flex flex-row items-center sm:text-md text-sm
                           bg-[#228EE5] hover:bg-[#1b6fb8] transition-colors 
-                          duration-300 px-5.5 py-1.5 rounded-md font-medium"
+                          duration-300 px-5 py-2 rounded-md font-medium"
             href={`/videoplayer/${selectedMovie?.id}`}>
           <FaPlay className="inline mr-1 h-3 w-4"/>
           Watch Now
         </Link>
-        <button className="border border-[#228EE5]/60 text-white flex flex-row items-center 
+        <button className="border border-[#228EE5]/60 text-white flex flex-row items-center sm:text-md text-sm
                           hover:bg-white/10 transition-colors 
-                          duration-300 px-5.5 py-1.5 rounded-md font-medium ml-4">
+                          duration-300 px-5 py-2 rounded-md font-medium ml-4">
           Preview
         </button>
       </div>

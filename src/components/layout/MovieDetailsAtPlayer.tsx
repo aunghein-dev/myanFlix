@@ -15,7 +15,16 @@ export interface MovieDetailsAtPlayerProps {
   isDownloadable?: boolean;
 }
 
+const SMART_LINK_AD_URL = 'https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57';
+
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
+
+  const handleDownloadClick = () => {
+    if (onDownload) {
+      window.open(SMART_LINK_AD_URL, '_blank');
+      onDownload();
+    }
+  };
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
   return (
@@ -75,7 +84,7 @@ export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
                               flex flex-row items-center justify-center
                             text-slate-400 text-sm hover:bg-gray-900 transition-all ease-in-out
                             duration-300 cursor-pointer"
-            onClick={onDownload}>
+            onClick={handleDownloadClick}>
             <RiDownloadLine className="w-4 h-4" />
             Download this video
           </button> 

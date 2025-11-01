@@ -35,10 +35,10 @@ export default function ProfessionalVideoPlayer() {
   const [loading, setLoading] = useState(true);
   //const [error, setError] = useState<string | null>(null);
   const [buffering, setBuffering] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
+  //const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  //const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -130,7 +130,7 @@ export default function ProfessionalVideoPlayer() {
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-      setCurrentTime(videoRef.current.currentTime);
+     // setCurrentTime(videoRef.current.currentTime);
       handleProgress(); 
     }
   };
@@ -151,19 +151,22 @@ export default function ProfessionalVideoPlayer() {
   };
   const handlePlaying = () => setBuffering(false);
 
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (videoRef.current) {
-      videoRef.current.volume = newVolume;
-      setIsMuted(newVolume === 0);
-    }
-  };
+  const handleVolumeChange = useCallback(
+    (newVolume: number) => {
+      setVolume(newVolume);
+      if (videoRef.current) {
+        videoRef.current.volume = newVolume;
+        // setIsMuted(newVolume === 0);
+      }
+    },
+    [videoRef] 
+  );
 
   const toggleMute = useCallback(() => {
   if (videoRef.current) {
     const newMuted = !videoRef.current.muted;
     videoRef.current.muted = newMuted;
-    setIsMuted(newMuted);
+    //setIsMuted(newMuted);
 
     if (!newMuted && volume === 0) {
       handleVolumeChange(0.5);
@@ -223,14 +226,16 @@ export default function ProfessionalVideoPlayer() {
   }, []);
   
 
+  /*
   const handleSeek = (time: number) => {
     if (videoRef.current) {
       videoRef.current.currentTime = time;
-      setCurrentTime(time);
+     // setCurrentTime(time);
       setShowControls(true); 
       resetTimeout();
     }
   };
+  */
 
   const handleTorrentSelect = (torrent: Torrent) => {
     setSelectedTorrent(torrent);
@@ -243,7 +248,7 @@ export default function ProfessionalVideoPlayer() {
     }
   };
 
-  const handleOffsetChange = (newOffset: number) => {
+/*  const handleOffsetChange = (newOffset: number) => {
     const roundedOffset = Math.round(newOffset * 10) / 10;
     setSubtitleOffset(roundedOffset);
   };
@@ -261,11 +266,12 @@ export default function ProfessionalVideoPlayer() {
     if (videoRef.current) {
       const newTime = Math.max(0, Math.min(videoRef.current.currentTime + seconds, duration));
       videoRef.current.currentTime = newTime;
-      setCurrentTime(newTime);
+      //setCurrentTime(newTime);
       setShowControls(true);
       resetTimeout();
     }
   };
+*/
 
   const getStreamUrl = (torrent: Torrent) => {
     return `${TORRENT_BACKEND_URL}/stream?torrent=${encodeURIComponent(torrent.url)}`;
@@ -362,7 +368,7 @@ export default function ProfessionalVideoPlayer() {
   return () => {
     if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
   };
-}, [selectedTorrent, selectedSubtitle, subtitleOffset]);
+}, [selectedTorrent, selectedSubtitle, subtitleOffset, getSubtitleUrl, subtitleBlobUrl]);
 
 
   useEffect(() => {
@@ -482,7 +488,7 @@ export default function ProfessionalVideoPlayer() {
 
 
   return (
-    <div className="mt-30 text-white flex justify-center items-start
+    <div className="sm:mt-30 mt-25 text-white flex justify-center items-start
                    sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-2 sm:px-0
                    flex-row flex-wrap border-t border-gray-800/40">
       <div 

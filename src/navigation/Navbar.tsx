@@ -35,6 +35,7 @@ export interface MovieSearchResult {
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export default function Navbar() {
 
+  const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState("");
   const pathname = usePathname();
   const [result, setResult] = useState<MovieSearchResult[]>([]);
@@ -94,10 +95,9 @@ export default function Navbar() {
   }, [query, pathname, liveMatches, isLoading]);
 
 
-
   return (
     <nav
-      className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1 px-2
+      className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
                 rounded-3xl mb-6 fixed top-2 sm:top-6
                 left-0 right-0
                 bg-black/10
@@ -109,20 +109,35 @@ export default function Navbar() {
                 cursor-pointer
                 sm:min-h-[78px]
                 min-h-[60px]
+                max-h-[60px]
                 z-1000
+                pl-2
                 mx-1"
     >
-      <div className="-my-2 flex items-center justify-between w-full">
+      <div className="-my-2 flex items-center justify-between w-full ">
 
         <div className="flex items-center">
-          <Link href="/">
+          <Link href="/"
+                className="hidden sm:block">
             <GlobalImage
               width={72}
               height={72}
               unoptimized
               src="/logo.png"
               alt="App logo"
-              className="w-[72px] h-[72px] object-contain scale-200 select-none ml-10 mr-10"
+              className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px]"
+            />
+          </Link>
+          <Link href="/"
+                className="block sm:hidden">
+            <GlobalImage
+              key={focused ? "logo-only" : "logo"} 
+              width={72}
+              height={72}
+              unoptimized
+              src={`${focused ? "/logo-only.png" : "/logo.png"}`}
+              alt="App logo"
+              className={`object-contain scale-200 select-none mr-10 ${!focused ? "ml-10 w-[72px] h-[72px]" : "w-[60px] h-[60px]"}`}
             />
           </Link>
           
@@ -155,7 +170,12 @@ export default function Navbar() {
 
         <div className="flex items-center pr-3 relative">
           <div className="flex items-center">
-            <Search setQuery={setQuery} query={query} isAllowedPage={isAllowedPage}/>
+            <Search 
+              focused={focused}
+              setFocused={setFocused}
+              setQuery={setQuery} 
+              query={query} 
+              isAllowedPage={isAllowedPage}/>
           </div>
         
           {

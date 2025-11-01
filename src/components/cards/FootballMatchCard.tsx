@@ -71,8 +71,8 @@ const colorCache = new Map<string, HexColor>();
 
 
 export default function FootballMatchCard({ match }: { match: FootballMatch }) {
-  const [homeColor, setHomeColor] = useState<HexColor>("#334155");
-  const [awayColor, setAwayColor] = useState<HexColor>("#334155");
+  const [homeColor, setHomeColor] = useState<HexColor>();
+  const [awayColor, setAwayColor] = useState<HexColor>();
   const [imageErrors, setImageErrors] = useState<{ home: boolean; away: boolean }>({ 
     home: false, 
     away: false 
@@ -117,7 +117,9 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
       return adjustedColor;
     } catch (err) {
       const fallback = generateFallbackColor(teamName);
-      colorCache.set(cacheKey, fallback);
+      colorCache.set(cacheKey, fallback,);
+      console.log(err);
+      
       return fallback;
     }
   }, []);
@@ -139,6 +141,7 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
           setColorsLoaded(true);
         }
       } catch (error) {
+        console.log(error);
         if (isMounted) {
           setColorsLoaded(true);
         }

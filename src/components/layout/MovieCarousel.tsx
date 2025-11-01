@@ -1,5 +1,5 @@
 import { Movie } from "@/types/movie";
-import Image from "next/image";
+import GlobalImage from "../atoms/GlobalImage";
 
 export default function MovieCarousel({ movies, activeIndex, setActiveIndex }: { movies: Movie[]; activeIndex: number; setActiveIndex: (index: number) => void }) {
   return (
@@ -21,7 +21,7 @@ export default function MovieCarousel({ movies, activeIndex, setActiveIndex }: {
                   onClick={() => setActiveIndex(index)}
                 >
                   <div className="relative">
-                    <Image
+                    <GlobalImage
                       width={20}
                       height={22}
                       unoptimized
@@ -29,7 +29,7 @@ export default function MovieCarousel({ movies, activeIndex, setActiveIndex }: {
                       alt={movie.title}
                       className={`
                         rounded-lg shadow-2xl transition-all duration-300
-                        object-center object-cover border-[#228EE5]/80 border-[1px]
+                        object-center object-cover border-[#228EE5]/80 border
                         ${isActive 
                           ? "w-20 h-22 scale-120 z-20 transform -translate-y-2" 
                           : "w-20 h-22"

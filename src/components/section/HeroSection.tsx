@@ -24,8 +24,8 @@ export default function HeroSection({ movies, activeIndex, setActiveIndex, activ
               backgroundImage: `url(https://image.tmdb.org/t/p/original${activeMovie.backdrop_path})`,
             }}
           />
-          <div className="absolute left-0 top-0 w-[60px] h-full z-[100] bg-gradient-to-r from-black/70 to-transparent"></div>
-              <div className="absolute right-0 top-0 w-[60px] h-full z-[100] bg-gradient-to-l from-black/70 to-transparent"></div>
+          <div className="absolute left-0 top-0 w-[60px] h-full bg-gradient-to-r from-black/70 to-transparent"></div>
+              <div className="absolute right-0 top-0 w-[60px] h-full bg-gradient-to-l from-black/70 to-transparent"></div>
 
           {/* Gradient overlay */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
