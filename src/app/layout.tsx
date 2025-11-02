@@ -1,8 +1,29 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono } from "next/font/google"; 
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
+
+
+export const metadata: Metadata = {
+  title: "myanFlix — Watch Free Movies & Live Football Streaming in HD",
+  description: "Watch and download the latest movies, TV shows, and live football matches for free on myanFlix. Enjoy smooth HD streaming anytime, anywhere — no subscriptions required.",
+  keywords: [
+    "myanflix", 
+    "free movies", 
+    "watch movies online", 
+    "live football streaming", 
+    "HD movies", 
+    "Myanmar movies", 
+    "watch football free", 
+    "sports live", 
+    "latest movies"
+  ],
+  icons: {
+    icon: '/favicon.ico',
+  },
+};
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -14,10 +35,6 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export const metadata: Metadata = {
-  title: "myanFlix",
-  description: "Modern watch app",
-};
 
 export default function RootLayout({
   children,
@@ -29,21 +46,12 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <head>
-          <title>myanFlix — Watch Free Movies & Live Football Streaming in HD</title>
-          <meta
-            name="description"
-            content="Watch and download the latest movies, TV shows, and live football matches for free on myanFlix. Enjoy smooth HD streaming anytime, anywhere — no subscriptions required."
-          />
-          <meta
-            name="keywords"
-            content="myanflix, free movies, watch movies online, live football streaming, HD movies, Myanmar movies, watch football free, sports live, latest movies"
-          />
-        </head>
+      
 
         <Container>
           {children}
         </Container>
+
 
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"
@@ -62,6 +70,8 @@ export default function RootLayout({
           strategy="lazyOnload" 
           id="myanflix-social-bar-ad" 
         />
+
+
       </body>
     </html>
   );
