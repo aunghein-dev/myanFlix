@@ -141,7 +141,7 @@ export default function LineCharacterList() {
   }, [activeList]);
 
   return (
-    <div className="relative">
+    <div className="relative mb-4">
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-white sm:text-2xl text-lg font-semibold">Characters</h1>
 

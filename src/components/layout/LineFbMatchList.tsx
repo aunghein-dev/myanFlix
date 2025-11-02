@@ -19,6 +19,7 @@ export default function LineFbMatchList({
   link,
   logo,
   titleDisable,
+
 }: LineFbMatchListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeft, setShowLeft] = useState(false);

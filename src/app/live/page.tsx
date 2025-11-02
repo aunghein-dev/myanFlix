@@ -11,6 +11,16 @@ import Spinner from "@/components/atoms/Spinner";
 import ErrorView from "@/components/ErrorView";
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
+
+export const uniqueMatches = (matches: FootballMatch[] = []) => {
+  const seen = new Set<string>();
+  return matches.filter((m) => {
+    const key = m.match_time ?? `${m.home_team_name}-${m.away_team_name}-${m.league_name}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
 export default function LivePage() {
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -50,17 +60,6 @@ export default function LivePage() {
       />
     );
   }
-  
-
-  const uniqueMatches = (matches: FootballMatch[] = []) => {
-    const seen = new Set<string>();
-    return matches.filter((m) => {
-      const key = m.match_time ?? `${m.home_team_name}-${m.away_team_name}-${m.league_name}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
-  };
 
 
   const liveMatchesToShow = uniqueMatches(

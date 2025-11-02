@@ -7,6 +7,10 @@ import useSWR from "swr";
 import { fetcher } from "../lib/fetcher";
 import { useMemo, useState } from "react";
 import LineCharacterList from "@/components/layout/LineCharacterList";
+import LineFbMatchList from "@/components/layout/LineFbMatchList";
+import type { FootballMatch } from "@/components/cards/FootballMatchCard";
+import Spinner from "@/components/atoms/Spinner";
+import { uniqueMatches } from "./live/page";
 
 export interface TMDBResponse<T> {
   results: T[];
@@ -34,6 +38,8 @@ export const endpoints = {
   return releaseYear >= currentYear - 10; 
  }
 
+
+  const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export default function Home() {
   const [activeIndex, setActiveIndex] = useState(2);
 
@@ -46,6 +52,20 @@ export default function Home() {
   const { data: animeData, isLoading: animeLoading } = useSWR<TMDBResponse<Movie>>(endpoints.anime, fetcher);
   const { data: animationData, isLoading: animationLoading } = useSWR<TMDBResponse<Movie>>(endpoints.animation, fetcher);
   const { data: topRatedData, isLoading: topRatedLoading } = useSWR<TMDBResponse<Movie>>(endpoints.topRated, fetcher);
+
+  const {
+    data: liveMatches,
+    error,
+    isLoading: liveMatchesLoading,
+  } = useSWR<FootballMatch[]>(
+    LIVE,
+    fetcher,
+    {
+      revalidateOnFocus: true,
+      refreshInterval: 60_000, 
+      errorRetryCount: 3,
+    }
+  );
 
   const heroMovies = heroData?.results.slice(0, 5) ?? [];
 
@@ -88,7 +108,14 @@ export default function Home() {
   );
   const topRatedMovies = topRatedData?.results.slice(0, 20) ?? [];
 
-  
+  const liveMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.match_status === "live")
+  );
+
+  const engPRMatchesToShow = uniqueMatches(
+    liveMatches?.filter((m) => m.league_name === "ENG PR")
+  );
+
   return (
     <div>
       <HeroSection
@@ -102,6 +129,18 @@ export default function Home() {
       <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 pt-3">
         <LineMovieList title="Trending" moviesList={trendingMovies} link="/movies/categories/trending" loading={trendingLoading}/>
         <LineMovieList title="Action" moviesList={actionMovies} link="/movies/categories/action" loading={actionLoading}/>
+        {
+          liveMatchesLoading ? <Spinner className="min-h-[280px]"/> : (
+            liveMatchesToShow.length > 0 &&
+            <div className="mb-4">
+              <LineFbMatchList 
+                liveMatchesList={liveMatchesToShow} 
+                title="Live Now" 
+                link="/live" 
+                />
+            </div>
+          )
+        }
         <LineMovieList title="Adventure" moviesList={adventureMovies} link="/movies/categories/adventure" loading={adventureLoading} />
         <LineMovieList title="K-Drama" moviesList={kDramaMovies} link="/movies/categories/kdrama" loading={kDramaLoading}/>
         <LineMovieList title="Bollywood" moviesList={indianMovies} link="/movies/categories/indian" loading={indianLoading}/>
@@ -109,6 +148,19 @@ export default function Home() {
         <LineMovieList title="Animation" moviesList={animationMovies} link="/movies/categories/animation" loading={animationLoading}/>
         <LineMovieList title="Top Rated" moviesList={topRatedMovies} link="/movies/categories/toprated" loading={topRatedLoading}/>
         <LineCharacterList/>
+         {
+          liveMatchesLoading ? <Spinner className="min-h-[280px]"/> : (
+            engPRMatchesToShow.length > 0 &&
+            <div className="mb-4">
+              <LineFbMatchList 
+                liveMatchesList={engPRMatchesToShow} 
+                title="English Premier League" 
+                link="/live" 
+                logo="/epl-logo.png"
+                />
+            </div>
+          )
+        }
       </div>
     </div>
   );
