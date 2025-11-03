@@ -86,7 +86,7 @@ function LivePlayerContent() {
       ref={scrollRef}
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto sm:mt-30 mt-25 px-2 sm:px-0">
 
-      <Suspense fallback={<div className="flex flex-col items-center justify-center h-screen bg-gray-900 p-4 text-white">
+      <Suspense fallback={<div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4 text-white">
         <Spinner />
       </div>}>
         {selectedMatch && <LiveStreamPlayerApp match={selectedMatch} />}

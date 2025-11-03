@@ -16,16 +16,16 @@ export interface MovieDetailsAtPlayerProps {
 }
 
 
-
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
   const handleDownloadClick = () => {
-    if (onDownload) {
-      window.open("/api/ad", "_blank");
-      onDownload();
-    }
+    window.open("/api/ad", "_blank");
+    setTimeout(() => {
+      if (onDownload) {
+        onDownload();
+      }
+    }, 50);   
   };
-
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
   return (
