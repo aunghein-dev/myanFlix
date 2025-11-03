@@ -1,11 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause, Volume2, VolumeX, Minimize, Maximize, RotateCw, Video, Server } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Minimize, Maximize, RotateCw, Video, Server, X } from "lucide-react";
 import Hls, { type ErrorData } from "hls.js";
 import Spinner from "../atoms/Spinner";
 
-// Interfaces (Keep as is)
+// Interfaces
 export interface StreamServer {
   name: string;
   stream_url: string;
@@ -30,7 +30,23 @@ export interface GroupedStreams {
   [quality: string]: StreamServer[];
 }
 
-// --- Utilities --- (Keep as is)
+// Ad Configuration Interface
+interface AdConfig {
+  enabled: boolean;
+  vastUrl: string;
+  adFrequency: number; // in minutes
+  skipOffset: number; // in seconds
+}
+
+// Default ad configuration
+const defaultAdConfig: AdConfig = {
+  enabled: true,
+  vastUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=",
+  adFrequency: 18, // Show ad every 18 minutes
+  skipOffset: 5 // Allow skip after 5 seconds
+};
+
+// --- Utilities ---
 const groupServers = (servers: StreamServer[]): GroupedStreams => {
   const grouped: GroupedStreams = {};
   servers.forEach((server, index) => {
@@ -45,7 +61,49 @@ const groupServers = (servers: StreamServer[]): GroupedStreams => {
   return grouped;
 };
 
-// --- useHlsPlayer Hook --- (Keep as is)
+// VAST Parser
+class VASTParser {
+  static async parse(vastUrl: string): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
+    try {
+      const response = await fetch(vastUrl);
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+      
+      // Extract media file URL
+      const mediaFile = xmlDoc.querySelector('MediaFile');
+      const mediaUrl = mediaFile?.textContent;
+      
+      // Extract duration
+      const durationElem = xmlDoc.querySelector('Duration');
+      const durationText = durationElem?.textContent || '00:00:30';
+      const duration = this.parseDuration(durationText);
+      
+      // Extract skip offset
+      const skipable = xmlDoc.querySelector('Linear[skipoffset]');
+      const skipOffset = skipable ? this.parseDuration(skipable.getAttribute('skipoffset') || '00:00:05') : 5;
+
+      if (mediaUrl) {
+        return { mediaUrl, duration, skipOffset };
+      }
+    } catch (error) {
+      console.error('VAST parsing error:', error);
+    }
+    return null;
+  }
+
+  static parseDuration(duration: string): number {
+    if (duration.includes(':')) {
+      const parts = duration.split(':');
+      if (parts.length === 3) {
+        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+      }
+    }
+    return parseInt(duration) || 30;
+  }
+}
+
+// --- useHlsPlayer Hook (FIXED HLS ERROR HANDLING) ---
 const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, streamUrl: string | undefined) => {
   const hlsRef = useRef<Hls | null>(null);
   const retryCountRef = useRef(0);
@@ -61,8 +119,6 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
       hlsRef.current = null;
     }
     
-    video.play().catch(e => console.log("Autoplay attempt:", e));
-
     if (Hls.isSupported()) {
       const hls = new Hls();
       hlsRef.current = hls;
@@ -71,31 +127,52 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
       
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
         retryCountRef.current = 0; 
+        // This is the correct place to call play()
         video.play().catch(e => console.log("Autoplay blocked (HLS):", e));
       });
 
+      // --- FIXED: Robust HLS Error Handling to Prevent Looping ---
       hls.on(Hls.Events.ERROR, (_, data: ErrorData) => {
         console.warn("HLS Error:", data.type, data);
-        if (!data.fatal) return;
-
-        if (retryCountRef.current < maxRetries) {
-          retryCountRef.current++;
-          console.log(`Fatal HLS Error. Retry attempt ${retryCountRef.current}/${maxRetries} in ${retryInterval}ms...`);
-          setTimeout(setupStream, retryInterval); 
-        } else {
-          console.error("Max retries reached, stream is unrecoverable.");
-          hls.destroy();
+        
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              // For fatal network errors, try to load the source again.
+              if (retryCountRef.current < maxRetries) {
+                retryCountRef.current++;
+                console.log(`Fatal HLS Network Error. Retry attempt ${retryCountRef.current}/${maxRetries} in ${retryInterval}ms...`);
+                // Use setupStream to fully restart the HLS instance
+                setTimeout(setupStream, retryInterval); 
+              } else {
+                console.error("Max network retries reached, stream is unrecoverable.");
+                hls.destroy();
+              }
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              // For fatal media errors, try to recover media, but NOT restart the stream.
+              console.warn("Fatal HLS Media Error, attempting media recovery.");
+              hls.recoverMediaError(); // Let HLS try to fix the media buffer
+              break;
+            default:
+              // Other fatal errors (like PARSING_ERROR)
+              console.error(`Unrecoverable fatal HLS Error: ${data.type}`);
+              hls.destroy();
+              break;
+          }
         }
       });
+      // --- END FIXED HLS Error Handling ---
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
       video.src = streamUrl;
+      // This play() call is fine as it's for native HLS
       video.play().catch(e => console.log("Autoplay blocked (native):", e));
     } else {
       console.error("HLS not supported in this browser");
     }
   }, [streamUrl, videoRef]);
 
- useEffect(() => {
+  useEffect(() => {
     setupStream();
     return () => {
       if (hlsRef.current) {
@@ -111,35 +188,29 @@ const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, stream
   return { refreshStream, reloadStream };
 };
 
-// =========================================================================
-// 🚀 TYPESAFE AUGMENTATIONS FOR iOS FULLSCREEN
-// =========================================================================
-/**
- * Extends the standard HTMLVideoElement interface to include
- * the WebKit-prefixed method for iOS Safari fullscreen.
- */
+// iOS Fullscreen Types
 interface WebKitVideoElement extends HTMLVideoElement {
   webkitEnterFullscreen?: () => void;
 }
 
-/**
- * Extends the standard Document interface to include
- * WebKit-prefixed properties and methods for iOS Safari fullscreen.
- */
 interface WebKitDocument extends Document {
   webkitFullscreenElement?: Element;
   webkitExitFullscreen?: () => void;
 }
 
-
 // --- Component ---
 interface Props {
   match: FootballMatch;
+  adConfig?: Partial<AdConfig>;
 }
 
-const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
+const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const adVideoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Merge provided ad config with defaults
+  const finalAdConfig: AdConfig = { ...defaultAdConfig, ...adConfig };
 
   const groupedStreams = groupServers(match.servers);
   const availableQualities = Object.keys(groupedStreams).sort((a, b) => {
@@ -154,13 +225,22 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   const defaultServer = groupedStreams[defaultQuality]?.[0];
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(true); 
   const [volume, setVolume] = useState(0.8);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isControlsVisible, setIsControlsVisible] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [showServerPicker, setShowServerPicker] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
+
+  // Ad states
+  const [isAdPlaying, setIsAdPlaying] = useState(false);
+  const [adMediaUrl, setAdMediaUrl] = useState<string | null>(null);
+  const [adDuration, setAdDuration] = useState(0);
+  const [adCurrentTime, setAdCurrentTime] = useState(0);
+  const [adSkipOffset, setAdSkipOffset] = useState(5);
+  const [canSkipAd, setCanSkipAd] = useState(false);
+  const [adProgress, setAdProgress] = useState(0);
 
   const [selectedQuality, setSelectedQuality] = useState(defaultQuality);
   const [selectedServerId, setSelectedServerId] = useState(defaultServer?.id ?? 0);
@@ -170,12 +250,111 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
 
   const { refreshStream, reloadStream } = useHlsPlayer(videoRef, activeStreamUrl);
   
-  useEffect(() => {
-    if (activeStreamUrl) {
-      reloadStream();
+  const playTimeRef = useRef(0);
+  // --- FIX: Use a ref for prerollPlayed to ensure it only happens once ---
+  const prerollPlayedRef = useRef(false);
+
+  // Load and play ad
+  const playAd = useCallback(async () => {
+    if (!finalAdConfig.enabled || isAdPlaying) return;
+
+    try {
+      const adData = await VASTParser.parse(finalAdConfig.vastUrl);
+      if (adData) {
+        playTimeRef.current = 0;
+        setIsAdPlaying(true);
+        setAdMediaUrl(adData.mediaUrl);
+        setAdDuration(adData.duration);
+        setAdSkipOffset(adData.skipOffset);
+        setCanSkipAd(false);
+        setAdCurrentTime(0);
+        setAdProgress(0);
+
+        // Pause main content
+        if (videoRef.current && isPlaying) {
+          videoRef.current.pause();
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load ad:', error);
+      setIsAdPlaying(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeStreamUrl, selectedServerId, selectedQuality]); 
+  }, [finalAdConfig, isAdPlaying, isPlaying]);
+
+  // Skip ad
+  const skipAd = useCallback(() => {
+    if (adVideoRef.current) {
+      adVideoRef.current.pause();
+      // Ensure ad video source is cleared to prevent accidental reloads
+      adVideoRef.current.src = ""; 
+    }
+    setIsAdPlaying(false);
+    setAdMediaUrl(null);
+    
+    // Resume main content
+    if (videoRef.current) {
+        // Attempt to play if it was playing before the ad
+        if (isPlaying) { 
+             videoRef.current.play().catch(console.error);
+        } else if (videoRef.current.paused) {
+             // If video was paused before the ad, keep it paused, but ensure it's loaded
+        }
+    }
+  }, [isPlaying]);
+
+  // Handle ad time update
+  const handleAdTimeUpdate = useCallback(() => {
+    if (adVideoRef.current) {
+      const currentTime = adVideoRef.current.currentTime;
+      setAdCurrentTime(currentTime);
+      setAdProgress((currentTime / adDuration) * 100);
+
+      if (currentTime >= adSkipOffset && !canSkipAd) {
+        setCanSkipAd(true);
+      }
+
+      if (currentTime >= adDuration) {
+        skipAd();
+      }
+    }
+  }, [adDuration, adSkipOffset, canSkipAd, skipAd]);
+
+// Schedule ads based on play time (Mid-roll)
+  useEffect(() => {
+    if (!finalAdConfig.enabled || !isPlaying || isAdPlaying) {
+      // If not playing or ad is playing, do nothing
+      return; 
+    }
+
+    // This interval counts up the seconds of content watched
+    const interval = setInterval(() => {
+      playTimeRef.current += 1;
+      
+      const timeSinceLastAd = playTimeRef.current / 60; // Convert to minutes
+      
+      if (timeSinceLastAd >= finalAdConfig.adFrequency) {
+        playAd(); // playAd will reset the timer to 0
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd]); // Added adFrequency dependency
+
+  // --- FIX: Corrected Pre-roll Ad Logic ---
+  useEffect(() => {
+    // Only run this effect once on mount. The dependencies are just for enabling it.
+    if (finalAdConfig.enabled && !prerollPlayedRef.current) {
+        // We only check for activeStreamUrl once to start the process
+        if (activeStreamUrl) {
+            prerollPlayedRef.current = true; // Mark pre-roll as played immediately
+            playAd(); // Play the ad
+        }
+    }
+  }, [activeStreamUrl, finalAdConfig.enabled, playAd]);
+  // --- END FIX ---
+  
+  // Note: The original 'Reset play time when not playing' effect was removed as it was redundant with the mid-roll effect's cleanup.
+
   
   useEffect(() => {
     const video = videoRef.current;
@@ -201,12 +380,13 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     setSelectedServerId(newDefaultServer?.id ?? 0);
   }, [match]);
 
-
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
-    const handlePlay = () => setIsPlaying(true);
+    const handlePlay = () => {
+      setIsPlaying(true);
+    };
     const handlePause = () => setIsPlaying(false);
     const handleEnded = () => setIsPlaying(false);
     const handleWaiting = () => setIsBuffering(true);
@@ -236,14 +416,14 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
   const hideTimeout = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-   const scheduleHide = () => {
-      if (hideTimeout.current) clearTimeout(hideTimeout.current);
-      hideTimeout.current = setTimeout(() => {
-        if (isPlaying && !showSettings && !showServerPicker) { 
-          setIsControlsVisible(false);
-        }
-      }, 3000);
-    };
+    const scheduleHide = () => {
+      if (hideTimeout.current) clearTimeout(hideTimeout.current);
+      hideTimeout.current = setTimeout(() => {
+        if (isPlaying && !showSettings && !showServerPicker && !isAdPlaying) { 
+          setIsControlsVisible(false);
+        }
+      }, 3000);
+    };
 
     const handleInteraction = () => {
       setIsControlsVisible(true);
@@ -264,40 +444,32 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
       container?.removeEventListener("mouseleave", scheduleHide);
       if (hideTimeout.current) clearTimeout(hideTimeout.current);
     };
-  }, [isPlaying, showSettings, showServerPicker]);
+  }, [isPlaying, showSettings, showServerPicker, isAdPlaying]);
 
-  // =========================================================================
-  // 🚀 TYPESAFE toggleFullScreen FOR iOS SUPPORT
-  // =========================================================================
   const toggleFullScreen = useCallback(() => {
-    // Cast to our augmented types
     const video = videoRef.current as WebKitVideoElement | null;
     const doc = document as WebKitDocument;
 
     if (!video) return;
 
-    // Check if *any* fullscreen mode is active (standard or webkit)
     const isVideoInFullScreen = !!(doc.fullscreenElement || doc.webkitFullscreenElement);
 
     if (isVideoInFullScreen) {
-      // Exit fullscreen
       if (doc.exitFullscreen) {
         doc.exitFullscreen().catch(console.error);
-      } else if (doc.webkitExitFullscreen) { // Safari
-        doc.webkitExitFullscreen(); // This method doesn't return a promise on older Safari
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
       }
     } else {
-      // Enter fullscreen
       if (video.requestFullscreen) {
         video.requestFullscreen({ navigationUI: "auto" })
           .catch((err) => {
             console.warn("Standard requestFullscreen failed, trying webkit...", err);
-            // Fallback for iOS Safari
             if (video.webkitEnterFullscreen) {
               video.webkitEnterFullscreen();
             }
           });
-      } else if (video.webkitEnterFullscreen) { // Direct call for iOS Safari
+      } else if (video.webkitEnterFullscreen) {
         video.webkitEnterFullscreen();
       } else {
         console.error("Fullscreen API not supported in this browser.");
@@ -305,17 +477,12 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     }
   }, []);
 
-  // =========================================================================
-  // 🚀 TYPESAFE Fullscreen Event Listener FOR iOS SUPPORT
-  // =========================================================================
   useEffect(() => {
     const handleFullscreenChange = () => {
-      // Cast to our augmented type
       const doc = document as WebKitDocument;
       setIsFullScreen(!!(doc.fullscreenElement || doc.webkitFullscreenElement));
     };
     
-    // Listen to *both* the standard event and the WebKit-prefixed event
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
     
@@ -335,7 +502,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
         container.style.cursor = 'pointer';
     }
   }, [isFullScreen, isControlsVisible]);
-
 
   const togglePlay = useCallback(() => {
     const video = videoRef.current;
@@ -390,6 +556,36 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     }
   };
 
+  // --- FIXED: Ad Playback Logic (Removed redundant `adVideo.muted = false;` here) ---
+  const playAdVideo = useCallback(async () => {
+    const adVideo = adVideoRef.current;
+    if (isAdPlaying && adMediaUrl && adVideo) {
+      try {
+        // 1. Always start muted to satisfy autoplay
+        adVideo.muted = true;
+        // The HTML element property determines the initial muted state.
+        // We ensure the internal player state is correct:
+        adVideo.volume = 1; // Set volume to 1 for the ad
+        await adVideo.play();
+        
+        // 2. We now rely on the *user* to unmute the main player, 
+        // which will also control the ad volume as they are visually merged.
+        // The 'muted={false}' property in the Ad Overlay video element 
+        // is what handles the unmuting/volume setting from the main controls.
+      } catch (error) {
+        console.error("Ad autoplay failed:", error);
+        // Ad failed to play, skip it and resume content immediately
+        skipAd();
+      }
+    }
+  }, [isAdPlaying, adMediaUrl, skipAd]);
+
+  useEffect(() => {
+    // We call this effect when adMediaUrl changes (when an ad is loaded)
+    playAdVideo();
+  }, [playAdVideo]);
+  // --- END FIXED AD LOGIC ---
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -408,19 +604,21 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     );
   }
 
-
   return (
     <div 
       ref={containerRef} 
-      className={`relative w-full bg-black rounded-xs overflow-hidden aspect-video group transition-all duration-300 ${
+      className={`relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 ${
           isControlsVisible ? '' : 'cursor-none' 
       }`}
     >
+      {/* Main Video */}
       <video
         ref={videoRef}
         onClick={(e) => {
-        setIsControlsVisible(true); 
-        togglePlay();
+          if (!isAdPlaying) {
+            setIsControlsVisible(true); 
+            togglePlay();
+          }
         }}
         className="w-full h-full object-contain cursor-pointer bg-black"
         playsInline
@@ -428,114 +626,158 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
         muted={isMuted} 
       />
 
-      {isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      {/* Ad Overlay */}
+      {isAdPlaying && adMediaUrl && (
+        <div className="absolute inset-0 z-20 bg-black flex items-center justify-center">
+          <div className="relative w-full h-full">
+            <video
+              ref={adVideoRef}
+              src={adMediaUrl}
+              autoPlay 
+              onTimeUpdate={handleAdTimeUpdate}
+              onEnded={skipAd}
+              className="w-full h-full object-contain"
+              playsInline 
+              // IMPORTANT: The ad video must be able to respect volume/mute controls 
+              // from the main component state. If it is permanently muted here, 
+              // the user cannot unmute it. We let the playAdVideo function handle 
+              // the initial muted start for autoplay.
+              muted={false} 
+            />
+            
+            {/* Ad Controls */}
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+              <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-3 py-1">
+                <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-white text-sm font-medium">Advertisement</span>
+              </div>
+              
+              {canSkipAd && (
+                <button
+                  onClick={skipAd}
+                  className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors"
+                >
+                  <span>Skip Ad</span>
+                  <X size={16} />
+                </button>
+              )}
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {isBuffering && !isAdPlaying && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 min-h-screen">
           <Spinner />
         </div>
       )}
 
-      <div 
-        className={`absolute inset-0 transition-opacity duration-300 ${
-          isControlsVisible ? 'opacity-100 ' : 'opacity-0 pointer-events-none group-hover:opacity-100'
-        }`}
-      >
-        {isControlsVisible && (
-            <div className="pointer-events-auto w-full h-full relative"> 
-                <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-                  <div className="flex items-center space-x-2 bg-black/50 rounded-lg px-3 py-1">
-                    <div className="w-2 h-2 bg-[#228EE5] rounded-full animate-pulse" />
-                    <span className="text-white text-sm font-medium">LIVE</span>
+      {/* Main Controls - Hidden during ads */}
+      {!isAdPlaying && (
+        <div 
+          className={`absolute inset-0 transition-opacity duration-300 ${
+            isControlsVisible ? 'opacity-100 ' : 'opacity-0 pointer-events-none group-hover:opacity-100'
+          }`}
+        >
+          {isControlsVisible && (
+              <div className="pointer-events-auto w-full h-full relative"> 
+                  <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+                    <div className="flex items-center space-x-2 bg-black/50 rounded-lg px-3 py-1">
+                      <div className="w-2 h-2 bg-[#228EE5] rounded-full animate-pulse" />
+                      <span className="text-white text-sm font-medium">LIVE</span>
+                    </div>
+                    <span className="text-white text-sm bg-black/50 rounded-lg px-3 py-1">{selectedQuality}</span>
                   </div>
-                  <span className="text-white text-sm bg-black/50 rounded-lg px-3 py-1">{selectedQuality}</span>
-                </div>
 
-               <div className="h-[100px] absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent"/>
-                <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <button onClick={togglePlay} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
-                        {isPlaying ? <Pause size={20} /> : <Play size={20} />}
-                      </button>
-                      <button onClick={toggleMute} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
-                        {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-                      </button>
-                      <div className="w-24 hidden sm:block">
-                        <input
-                          type="range"
-                          min={0}
-                          max={1}
-                          step={0.01}
-                          value={isMuted ? 0 : volume}
-                          onChange={handleVolumeChange}
-                          className="w-full h-1 bg-gray-600 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#228EE5]"
-                        />
+                 <div className="h-[100px] absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent"/>
+                  <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/90 via-transparent to-transparent">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <button onClick={togglePlay} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                          {isPlaying ? <Pause size={20} /> : <Play size={20} />}
+                        </button>
+                        <button onClick={toggleMute} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors">
+                          {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                        </button>
+                        <div className="w-24 hidden sm:block">
+                          <input
+                            type="range"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={isMuted ? 0 : volume}
+                            onChange={handleVolumeChange}
+                            className="w-full h-1 bg-gray-600 rounded-full appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-[#228EE5]"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <div className="relative">
+                          <button
+                            onClick={() => { setShowServerPicker(p => !p); setShowSettings(false); }}
+                            className="text-white hover:bg-white/20 rounded-lg px-3 py-2 transition-colors flex items-center space-x-2"
+                          >
+                            <Server size={16} />
+                            <span className="text-sm hidden sm:inline">Server</span>
+                          </button>
+                          {showServerPicker && (
+                            <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-32 shadow-xl z-10 max-h-[150px] overflow-y-scroll scrollbar-hide">
+                              {groupedStreams[selectedQuality]?.map(server => (
+                                <button
+                                  key={server.id}
+                                  onClick={() => handleServerChange(server.id!)}
+                                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
+                                    server.id === selectedServerId ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
+                                  }`}
+                                >
+                                  {server.serverName}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="relative">
+                          <button
+                            onClick={() => { setShowSettings(p => !p); setShowServerPicker(false); }}
+                            className="text-white hover:bg-white/20 rounded-lg px-3 py-2 transition-colors flex items-center space-x-2"
+                          >
+                            <Video size={22} />
+                            <span className="text-sm hidden sm:inline">Quality</span>
+                          </button>
+                          {showSettings && (
+                            <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-24 shadow-xl z-10 max-h-[200px] overflow-y-auto">
+                              {availableQualities.map(quality => (
+                                <button
+                                  key={quality}
+                                  onClick={() => handleQualityChange(quality)}
+                                  className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
+                                    quality === selectedQuality ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
+                                  }`}
+                                >
+                                  {quality}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <button onClick={refreshStream} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title="Refresh Stream">
+                          <RotateCw size={20} />
+                        </button>
+
+                        <button onClick={toggleFullScreen} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title={isFullScreen ? "Exit Fullscreen (f)" : "Enter Fullscreen (f)"}>
+                          {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                        </button>
                       </div>
                     </div>
-
-                    <div className="flex items-center space-x-2">
-                      <div className="relative">
-                        <button
-                          onClick={() => { setShowServerPicker(p => !p); setShowSettings(false); }}
-                          className="text-white hover:bg-white/20 rounded-lg px-3 py-2 transition-colors flex items-center space-x-2"
-                        >
-                          <Server size={16} />
-                          <span className="text-sm hidden sm:inline">Server</span>
-                        </button>
-                        {showServerPicker && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-32 shadow-xl z-10 max-h-[150px] overflow-y-scroll scrollbar-hide">
-                            {groupedStreams[selectedQuality]?.map(server => (
-                              <button
-                                key={server.id}
-                                onClick={() => handleServerChange(server.id!)}
-                                className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
-                                  server.id === selectedServerId ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
-                                }`}
-                              >
-                                {server.serverName}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="relative">
-                        <button
-                          onClick={() => { setShowSettings(p => !p); setShowServerPicker(false); }}
-                          className="text-white hover:bg-white/20 rounded-lg px-3 py-2 transition-colors flex items-center space-x-2"
-                        >
-                          <Video size={22} />
-                          <span className="text-sm hidden sm:inline">Quality</span>
-                        </button>
-                        {showSettings && (
-                          <div className="absolute bottom-full right-0 mb-2 bg-gray-900/50 border border-gray-700/50 rounded-lg p-1 min-w-24 shadow-xl z-10 max-h-[200px] overflow-y-auto">
-                            {availableQualities.map(quality => (
-                              <button
-                                key={quality}
-                                onClick={() => handleQualityChange(quality)}
-                                className={`w-full text-left px-3 py-2 text-sm rounded transition-colors ${
-                                  quality === selectedQuality ? 'bg-[#228EE5] text-white' : 'text-gray-300 hover:bg-black/40'
-                                }`}
-                              >
-                                {quality}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <button onClick={refreshStream} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title="Refresh Stream">
-                        <RotateCw size={20} />
-                      </button>
-
-                      <button onClick={toggleFullScreen} className="text-white hover:bg-white/20 rounded-full p-2 transition-colors" title={isFullScreen ? "Exit Fullscreen (f)" : "Enter Fullscreen (f)"}>
-                        {isFullScreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                      </button>
-                    </div>
                   </div>
-                </div>
-            </div>
-        )}
-      </div>
+              </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

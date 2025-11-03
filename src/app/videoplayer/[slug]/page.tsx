@@ -1,14 +1,14 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import Spinner from "@/components/atoms/Spinner";
 import { MovieDetails } from "@/app/details/[slug]/page";
 import MovieDetailsAtPlayer from "@/components/layout/MovieDetailsAtPlayer";
+import { X, Volume2, VolumeX } from "lucide-react";
 
-
-const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!
-const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL
+const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
+const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL;
 
 export interface Torrent {
   url: string;
@@ -27,94 +27,325 @@ export interface SubtitleLanguage {
   name: string;
 }
 
+// Ad Configuration Interface
+interface AdConfig {
+  enabled: boolean;
+  vastUrl: string;
+  adFrequency: number; // in minutes
+  skipOffset: number; // in seconds
+  preRoll: boolean;
+  midRoll: boolean;
+  postRoll: boolean;
+}
+
+// Default ad configuration
+const defaultAdConfig: AdConfig = {
+  enabled: true,
+  vastUrl:
+    "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=",
+  adFrequency: 15, // Show ad every 15 minutes
+  skipOffset: 5, // Allow skip after 5 seconds
+  preRoll: true,
+  midRoll: true,
+  postRoll: true,
+};
+
+// VAST Parser
+class VASTParser {
+  static async parse(
+    vastUrl: string
+  ): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
+    try {
+      const response = await fetch(vastUrl);
+      const xmlText = await response.text();
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+      // Extract media file URL
+      const mediaFile = xmlDoc.querySelector("MediaFile");
+      const mediaUrl = mediaFile?.textContent;
+
+      // Extract duration
+      const durationElem = xmlDoc.querySelector("Duration");
+      const durationText = durationElem?.textContent || "00:00:30";
+      const duration = this.parseDuration(durationText);
+
+      // Extract skip offset
+      const skipable = xmlDoc.querySelector("Linear[skipoffset]");
+      const skipOffset = skipable
+        ? this.parseDuration(skipable.getAttribute("skipoffset") || "00:00:05")
+        : 5;
+
+      if (mediaUrl) {
+        return { mediaUrl, duration, skipOffset };
+      }
+    } catch (error) {
+      console.error("VAST parsing error:", error);
+    }
+    return null;
+  }
+
+  static parseDuration(duration: string): number {
+    if (duration.includes(":")) {
+      const parts = duration.split(":");
+      if (parts.length === 3) {
+        return (
+          parseInt(parts[0]) * 3600 +
+          parseInt(parts[1]) * 60 +
+          parseInt(parts[2])
+        );
+      }
+    }
+    return parseInt(duration) || 30;
+  }
+}
+
 export default function ProfessionalVideoPlayer() {
   const router = useRouter();
   const { slug } = useParams() as { slug: string };
   const [torrents, setTorrents] = useState<Torrent[]>([]);
   const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
   const [loading, setLoading] = useState(true);
-  //const [error, setError] = useState<string | null>(null);
   const [buffering, setBuffering] = useState(false);
-  //const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  //const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
-  //const [bufferProgress, setBufferProgress] = useState(0); 
-
   const [showSettings, setShowSettings] = useState(false);
 
-  const [subtitleLanguages, setSubtitleLanguages] = useState<SubtitleLanguage[]>([]);
+  const [subtitleLanguages, setSubtitleLanguages] = useState<SubtitleLanguage[]>(
+    []
+  );
   const [selectedSubtitle, setSelectedSubtitle] = useState<string>("en");
   const [subtitleOffset, setSubtitleOffset] = useState<number>(0);
   const [subtitleSize, setSubtitleSize] = useState<number>(20);
 
   const [movieInfo, setMovieInfo] = useState<MovieDetails>();
 
+  // Ad states
+  const [isAdPlaying, setIsAdPlaying] = useState(false);
+  const [adMediaUrl, setAdMediaUrl] = useState<string | null>(null);
+  const [adDuration, setAdDuration] = useState(0);
+  const [adCurrentTime, setAdCurrentTime] = useState(0);
+  const [adSkipOffset, setAdSkipOffset] = useState(5);
+  const [canSkipAd, setCanSkipAd] = useState(false);
+  const [adProgress, setAdProgress] = useState(0);
+  const [adConfig] = useState<AdConfig>(defaultAdConfig);
+
   const videoRef = useRef<HTMLVideoElement>(null);
+  const adVideoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const settingsRef = useRef<HTMLDivElement>(null);
   const [subtitleBlobUrl, setSubtitleBlobUrl] = useState<string | null>(null);
+
+  // Ad timer refs
+  const adTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const playTimeRef = useRef(0);
+  const lastAdTimeRef = useRef(0);
+  const hasPlayedPreRollRef = useRef(false);
+
   const loadMovieData = useCallback(async () => {
     try {
       setLoading(true);
 
-      const movieRes = await fetch(`https://api.themoviedb.org/3/movie/${slug}?api_key=${API_KEY}`);
+      const movieRes = await fetch(
+        `https://api.themoviedb.org/3/movie/${slug}?api_key=${API_KEY}`
+      );
       const movieData = await movieRes.json();
 
-      if (!movieData.imdb_id) throw new Error('IMDb ID not found. Cannot fetch torrents.');
+      if (!movieData.imdb_id)
+        throw new Error("IMDb ID not found. Cannot fetch torrents.");
 
-      const ytsRes = await fetch(`https://yts.mx/api/v2/movie_details.json?imdb_id=${movieData.imdb_id}`);
+      const ytsRes = await fetch(
+        `https://yts.mx/api/v2/movie_details.json?imdb_id=${movieData.imdb_id}`
+      );
       const ytsData = await ytsRes.json();
       const torrentsList = ytsData?.data?.movie?.torrents || [];
 
       if (torrentsList.length === 0) {
-        router.push('/error?message=' + encodeURIComponent(`${movieData.title} not found or links broken.`));
-        throw new Error('No torrents found for this movie');
+        router.push(
+          "/error?message=" +
+            encodeURIComponent(`${movieData.title} not found or links broken.`)
+        );
+        throw new Error("No torrents found for this movie");
       }
 
-      const sortedTorrents = torrentsList
-        .sort((a: Torrent, b: Torrent) => {
-          const qualityOrder: { [key: string]: number } = { '2160p': 1, '1080p': 2, '720p': 3, '480p': 4, '360p': 5 };
-          const aQuality = qualityOrder[a.quality] || 0;
-          const bQuality = qualityOrder[b.quality] || 0;
+      const sortedTorrents = torrentsList.sort((a: Torrent, b: Torrent) => {
+        const qualityOrder: { [key: string]: number } = {
+          "2160p": 1,
+          "1080p": 2,
+          "720p": 3,
+          "480p": 4,
+          "360p": 5,
+        };
+        const aQuality = qualityOrder[a.quality] || 0;
+        const bQuality = qualityOrder[b.quality] || 0;
 
-          if (bQuality !== aQuality) return bQuality - aQuality;
-          return b.seeds - a.seeds;
-        });
-      const filteredTorrents = sortedTorrents.filter((torrent: Torrent) => torrent.seeds !== 0 && torrent.peers !== 0);
+        if (bQuality !== aQuality) return bQuality - aQuality;
+        return b.seeds - a.seeds;
+      });
+      const filteredTorrents = sortedTorrents.filter(
+        (torrent: Torrent) => torrent.seeds !== 0 && torrent.peers !== 0
+      );
 
       setTorrents(filteredTorrents);
       setSelectedTorrent(sortedTorrents[0]);
       setMovieInfo(movieData);
-      
+
       const subsRes = await fetch(`${TORRENT_BACKEND_URL}/subs/languages`);
       if (subsRes.ok) {
         const languages: SubtitleLanguage[] = await subsRes.json();
         setSubtitleLanguages(languages);
-        
-        setSelectedSubtitle(languages.find(l => l.code === 'en')?.code || (languages[0]?.code || ""));
-      }
 
+        setSelectedSubtitle(
+          languages.find((l) => l.code === "en")?.code ||
+            languages[0]?.code ||
+            ""
+        );
+      }
     } catch (err) {
       console.error("Failed to get movie data:", err);
-      //setError(err instanceof Error ? err.message : "Failed to load movie");
-      router.push('/error?message=' + encodeURIComponent(`Movie not found or links broken.`));
+      router.push(
+        "/error?message=" +
+          encodeURIComponent(`Movie not found or links broken.`)
+      );
     } finally {
       setLoading(false);
     }
   }, [slug, router]);
 
+  // Load and play ad
+  const playAd = useCallback(
+    async (adType: "preRoll" | "midRoll" | "postRoll" = "midRoll") => {
+      if (!adConfig.enabled || isAdPlaying) return;
+
+      try {
+        const adData = await VASTParser.parse(adConfig.vastUrl);
+        if (adData) {
+          setIsAdPlaying(true);
+          setAdMediaUrl(adData.mediaUrl);
+          setAdDuration(adData.duration);
+          setAdSkipOffset(adData.skipOffset);
+          setCanSkipAd(false);
+          setAdCurrentTime(0);
+          setAdProgress(0);
+
+          // Pause main content
+          if (videoRef.current && isPlaying) {
+            videoRef.current.pause();
+          }
+
+          // For post-roll, mark that we've reached the end
+          if (adType === "postRoll") {
+            if (videoRef.current) {
+              videoRef.current.currentTime = videoRef.current.duration;
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load ad:", error);
+        setIsAdPlaying(false);
+        // Resume main content if ad fails to load
+        if (videoRef.current && isPlaying) {
+          videoRef.current.play().catch(console.error);
+        }
+      }
+    },
+    [adConfig, isAdPlaying, isPlaying]
+  );
+
+  // Skip ad
+  const skipAd = useCallback(() => {
+    if (adVideoRef.current) {
+      adVideoRef.current.pause();
+    }
+    setIsAdPlaying(false);
+    setAdMediaUrl(null);
+
+    // Resume main content if it was playing
+    if (videoRef.current && isPlaying) {
+      videoRef.current.play().catch(console.error);
+    }
+  }, [isPlaying]);
+
+  // Handle ad time update
+  const handleAdTimeUpdate = useCallback(() => {
+    if (adVideoRef.current) {
+      const currentTime = adVideoRef.current.currentTime;
+      setAdCurrentTime(currentTime);
+      setAdProgress((currentTime / adDuration) * 100);
+
+      if (currentTime >= adSkipOffset && !canSkipAd) {
+        setCanSkipAd(true);
+      }
+
+      if (currentTime >= adDuration) {
+        skipAd();
+      }
+    }
+  }, [adDuration, adSkipOffset, canSkipAd, skipAd]);
+
+  // Schedule mid-roll ads based on play time
+  useEffect(() => {
+    if (!adConfig.enabled || !isPlaying || isAdPlaying || !adConfig.midRoll)
+      return;
+
+    const interval = setInterval(() => {
+      playTimeRef.current += 1;
+
+      // Check if it's time to show a mid-roll ad
+      const timeSinceLastAd =
+        (playTimeRef.current - lastAdTimeRef.current) / 60; // Convert to minutes
+      if (timeSinceLastAd >= adConfig.adFrequency) {
+        playAd("midRoll");
+        lastAdTimeRef.current = playTimeRef.current;
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isPlaying, isAdPlaying, adConfig, playAd]);
+
+  // Handle pre-roll ad
+  useEffect(() => {
+    if (
+      adConfig.enabled &&
+      adConfig.preRoll &&
+      !hasPlayedPreRollRef.current &&
+      selectedTorrent &&
+      !loading
+    ) {
+      // Small delay to ensure video is ready
+      const timer = setTimeout(() => {
+        playAd("preRoll");
+        hasPlayedPreRollRef.current = true;
+      }, 1000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [selectedTorrent, loading, adConfig, playAd]);
+
+  // Handle post-roll ad
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !adConfig.enabled || !adConfig.postRoll) return;
+
+    const handleEnded = () => {
+      if (!isAdPlaying) {
+        playAd("postRoll");
+      }
+    };
+
+    video.addEventListener("ended", handleEnded);
+    return () => video.removeEventListener("ended", handleEnded);
+  }, [isAdPlaying, adConfig, playAd]);
+
   const handleProgress = () => {
     if (videoRef.current && duration > 0) {
-        if (videoRef.current.buffered.length > 0) {
-            //const bufferedEnd = videoRef.current.buffered.end(0);
-            //const progress = (bufferedEnd / duration) * 100;
-            //setBufferProgress(Math.min(100, Math.round(progress)));
-        }
+      if (videoRef.current.buffered.length > 0) {
+        // Buffer progress logic if needed
+      }
     }
   };
 
@@ -125,30 +356,34 @@ export default function ProfessionalVideoPlayer() {
 
     setIsPlaying(false);
     setShowControls(true);
-    setBuffering(false); 
+    setBuffering(false);
   };
 
   const handleTimeUpdate = () => {
     if (videoRef.current) {
-     // setCurrentTime(videoRef.current.currentTime);
-      handleProgress(); 
+      // Update play time for ad scheduling
+      if (isPlaying) {
+        playTimeRef.current = Math.floor(videoRef.current.currentTime);
+      }
+      handleProgress();
     }
   };
 
   const handlePlay = () => {
     setIsPlaying(true);
-    if (!buffering) setShowControls(false); 
+    if (!buffering) setShowControls(false);
   };
 
   const handlePause = () => {
     setIsPlaying(false);
-    setShowControls(true); 
+    setShowControls(true);
   };
 
   const handleWaiting = () => {
     setBuffering(true);
     setShowControls(true);
   };
+
   const handlePlaying = () => setBuffering(false);
 
   const handleVolumeChange = useCallback(
@@ -156,145 +391,130 @@ export default function ProfessionalVideoPlayer() {
       setVolume(newVolume);
       if (videoRef.current) {
         videoRef.current.volume = newVolume;
-        // setIsMuted(newVolume === 0);
       }
     },
-    [videoRef] 
+    [videoRef]
   );
 
   const toggleMute = useCallback(() => {
-  if (videoRef.current) {
-    const newMuted = !videoRef.current.muted;
-    videoRef.current.muted = newMuted;
-    //setIsMuted(newMuted);
+    if (videoRef.current) {
+      const newMuted = !videoRef.current.muted;
+      videoRef.current.muted = newMuted;
 
-    if (!newMuted && volume === 0) {
-      handleVolumeChange(0.5);
+      if (!newMuted && volume === 0) {
+        handleVolumeChange(0.5);
+      }
     }
-  }
-}, [volume, handleVolumeChange]); 
+  }, [volume, handleVolumeChange]);
 
- const resetTimeout = useCallback(() => {
+  const resetTimeout = useCallback(() => {
     clearTimeout(controlsTimeoutRef.current);
     controlsTimeoutRef.current = setTimeout(() => {
-      if (videoRef.current && !videoRef.current.paused && !buffering) {
+      if (
+        videoRef.current &&
+        !videoRef.current.paused &&
+        !buffering &&
+        !isAdPlaying
+      ) {
         setShowControls(false);
       }
     }, 3000);
-  }, [buffering]);
-
+  }, [buffering, isAdPlaying]);
 
   const togglePlay = useCallback(() => {
-  if (videoRef.current) {
-    if (videoRef.current.paused) {
-      videoRef.current.play();
-    } else {
-      videoRef.current.pause();
+    if (isAdPlaying) return; // Don't allow play/pause during ads
+
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+      } else {
+        videoRef.current.pause();
+      }
+      setShowControls(true);
+      resetTimeout();
     }
-    setShowControls(true); 
-    resetTimeout();
-  }
-}, [resetTimeout]);
+  }, [resetTimeout, isAdPlaying]);
 
   const toggleFullscreen = useCallback(() => {
     if (!containerRef.current) return;
 
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen()
+      containerRef.current
+        .requestFullscreen()
         .then(() => {
-            setIsFullscreen(true); 
+          setIsFullscreen(true);
         })
-        .catch(err => {
-            console.error("Fullscreen request failed:", err);
+        .catch((err) => {
+          console.error("Fullscreen request failed:", err);
         });
     } else {
-      document.exitFullscreen()
+      document
+        .exitFullscreen()
         .then(() => {
-            setIsFullscreen(false); 
+          setIsFullscreen(false);
         })
-        .catch(err => console.error("Exit fullscreen failed:", err));
+        .catch((err) => console.error("Exit fullscreen failed:", err));
     }
   }, []);
 
   useEffect(() => {
     const onFullscreenChange = () => {
-        setIsFullscreen(!!document.fullscreenElement);
+      setIsFullscreen(!!document.fullscreenElement);
     };
 
-    document.addEventListener('fullscreenchange', onFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener("fullscreenchange", onFullscreenChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", onFullscreenChange);
   }, []);
-  
-
-  /*
-  const handleSeek = (time: number) => {
-    if (videoRef.current) {
-      videoRef.current.currentTime = time;
-     // setCurrentTime(time);
-      setShowControls(true); 
-      resetTimeout();
-    }
-  };
-  */
 
   const handleTorrentSelect = (torrent: Torrent) => {
     setSelectedTorrent(torrent);
     if (videoRef.current) {
-      videoRef.current.load(); 
-
+      videoRef.current.load();
       setIsPlaying(false);
       setShowControls(true);
-      setBuffering(true); 
+      setBuffering(true);
+
+      // Reset ad tracking for new content
+      hasPlayedPreRollRef.current = false;
+      playTimeRef.current = 0;
+      lastAdTimeRef.current = 0;
     }
   };
-
-/*  const handleOffsetChange = (newOffset: number) => {
-    const roundedOffset = Math.round(newOffset * 10) / 10;
-    setSubtitleOffset(roundedOffset);
-  };
-
-  const handleSubtitleSizeChange = (newSize: number) => {
-    setSubtitleSize(newSize);
-  };
-
-  const resetSubtitleSettings = () => {
-    setSubtitleOffset(0);
-    setSubtitleSize(20);
-  };
-
-  const quickSeek = (seconds: number) => {
-    if (videoRef.current) {
-      const newTime = Math.max(0, Math.min(videoRef.current.currentTime + seconds, duration));
-      videoRef.current.currentTime = newTime;
-      //setCurrentTime(newTime);
-      setShowControls(true);
-      resetTimeout();
-    }
-  };
-*/
 
   const getStreamUrl = (torrent: Torrent) => {
-    return `${TORRENT_BACKEND_URL}/stream?torrent=${encodeURIComponent(torrent.url)}`;
+    return `${TORRENT_BACKEND_URL}/stream?torrent=${encodeURIComponent(
+      torrent.url
+    )}`;
   };
 
-  const getSubtitleUrl = useCallback((torrent: Torrent, lang: string) => {
-    const imdbId = movieInfo?.imdb_id;
-    const url = `${TORRENT_BACKEND_URL}/subs?torrent=${encodeURIComponent(torrent.url)}&lang=${lang}${imdbId ? `&imdbId=${imdbId}` : ''}&offset=${subtitleOffset.toFixed(1)}`;
-    return url;
-  }, [movieInfo?.imdb_id, subtitleOffset]);
+  const getSubtitleUrl = useCallback(
+    (torrent: Torrent, lang: string) => {
+      const imdbId = movieInfo?.imdb_id;
+      const url = `${TORRENT_BACKEND_URL}/subs?torrent=${encodeURIComponent(
+        torrent.url
+      )}&lang=${lang}${
+        imdbId ? `&imdbId=${imdbId}` : ""
+      }&offset=${subtitleOffset.toFixed(1)}`;
+      return url;
+    },
+    [movieInfo?.imdb_id, subtitleOffset]
+  );
 
   useEffect(() => {
-    const styleId = 'custom-video-cue-styles';
+    const styleId = "custom-video-cue-styles";
     let style = document.getElementById(styleId) as HTMLStyleElement | null;
 
     if (!style) {
-      style = document.createElement('style');
+      style = document.createElement("style");
       style.id = styleId;
       document.head.appendChild(style);
     }
 
-    const baseSize = Math.max(12, Math.min(38, subtitleSize)); 
-    const responsiveSize = isFullscreen ? `clamp(${baseSize}px, 3vw, ${baseSize * 1.5}px)` : `${baseSize}px`;
+    const baseSize = Math.max(12, Math.min(38, subtitleSize));
+    const responsiveSize = isFullscreen
+      ? `clamp(${baseSize}px, 3vw, ${baseSize * 1.5}px)`
+      : `${baseSize}px`;
 
     style.textContent = `
       video::cue {
@@ -314,18 +534,23 @@ export default function ProfessionalVideoPlayer() {
         border-radius: 4px !important;
       }
     `;
-  }, [subtitleSize, isFullscreen]); 
+  }, [subtitleSize, isFullscreen]);
 
- const showControlsTemporarily = () => {
+  const showControlsTemporarily = () => {
     setShowControls(true);
     resetTimeout();
   };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const isClickInSettings = settingsRef.current?.contains(event.target as Node);
-      
-      if (!isClickInSettings && !containerRef.current?.contains(event.target as Node)) {
+      const isClickInSettings = settingsRef.current?.contains(
+        event.target as Node
+      );
+
+      if (
+        !isClickInSettings &&
+        !containerRef.current?.contains(event.target as Node)
+      ) {
         setShowControls(false);
         setShowSettings(false);
       } else if (!isClickInSettings && showSettings) {
@@ -333,9 +558,9 @@ export default function ProfessionalVideoPlayer() {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showSettings]);
 
@@ -345,69 +570,94 @@ export default function ProfessionalVideoPlayer() {
     }
     return () => {
       clearTimeout(controlsTimeoutRef.current);
+      if (adTimerRef.current) clearTimeout(adTimerRef.current);
     };
   }, [slug, loadMovieData]);
 
   useEffect(() => {
-  const loadSubtitle = async () => {
-    if (!selectedTorrent || !selectedSubtitle) return;
-    try {
-      const res = await fetch(getSubtitleUrl(selectedTorrent, selectedSubtitle));
-      if (!res.ok) throw new Error("Subtitle fetch failed");
-      const vttText = await res.text();
-      const blob = new Blob([vttText], { type: "text/vtt" });
-      const url = URL.createObjectURL(blob);
-      setSubtitleBlobUrl(url);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    const loadSubtitle = async () => {
+      if (!selectedTorrent || !selectedSubtitle) return;
+      try {
+        const res = await fetch(
+          getSubtitleUrl(selectedTorrent, selectedSubtitle)
+        );
+        if (!res.ok) throw new Error("Subtitle fetch failed");
+        const vttText = await res.text();
+        const blob = new Blob([vttText], { type: "text/vtt" });
+        const url = URL.createObjectURL(blob);
+        setSubtitleBlobUrl(url);
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
-  loadSubtitle();
+    loadSubtitle();
 
-  return () => {
-    if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
-  };
-}, [selectedTorrent, selectedSubtitle, subtitleOffset, getSubtitleUrl, subtitleBlobUrl]);
-
+    return () => {
+      if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
+    };
+    // **FIX 1:** Removed `subtitleBlobUrl` from dependency array to prevent loop
+  }, [selectedTorrent, selectedSubtitle, subtitleOffset, getSubtitleUrl]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT';
+      const isTyping =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT";
       const isInsideSettings = settingsRef.current?.contains(target);
-      
-      if (isTyping && isInsideSettings) return; 
-      
+
+      if (isTyping && isInsideSettings) return;
+
+      // Don't process keys during ads except for specific ad controls
+      if (isAdPlaying) {
+        if (event.key.toLowerCase() === "s" && canSkipAd) {
+          event.preventDefault();
+          skipAd();
+        }
+        return;
+      }
+
       switch (event.key.toLowerCase()) {
-        case 'f':
+        case "f":
           event.preventDefault();
           toggleFullscreen();
           break;
-        case 'k':
-        case ' ': // Spacebar for play/pause
+        case "k":
+        case " ": // Spacebar for play/pause
           event.preventDefault();
           togglePlay();
           break;
-        case 'm':
+        case "m":
           event.preventDefault();
           toggleMute();
           break;
         default:
           if (!isPlaying && !buffering && !showControls) {
-              setShowControls(true);
+            setShowControls(true);
           }
           break;
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener("keydown", handleKeyDown);
     return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("keydown", handleKeyDown);
       clearTimeout(controlsTimeoutRef.current);
     };
-  }, [toggleFullscreen, togglePlay, toggleMute, isPlaying, buffering, showControls, resetTimeout]);
-  
+  }, [
+    toggleFullscreen,
+    togglePlay,
+    toggleMute,
+    isPlaying,
+    buffering,
+    showControls,
+    resetTimeout,
+    isAdPlaying,
+    canSkipAd,
+    skipAd,
+  ]);
 
   useEffect(() => {
     if (!isFullscreen) {
@@ -423,13 +673,17 @@ export default function ProfessionalVideoPlayer() {
       clearTimeout(cursorTimeout);
 
       cursorTimeout = setTimeout(() => {
-        if (videoRef.current && !videoRef.current.paused && !buffering) {
+        if (
+          videoRef.current &&
+          !videoRef.current.paused &&
+          !buffering &&
+          !isAdPlaying
+        ) {
           document.body.style.cursor = "none";
           setShowControls(false);
         }
       }, 1800);
     };
-
 
     document.addEventListener("mousemove", showCursor);
 
@@ -438,88 +692,127 @@ export default function ProfessionalVideoPlayer() {
       document.body.style.cursor = "default";
       clearTimeout(cursorTimeout);
     };
-  }, [isFullscreen, buffering]);
-
-
+  }, [isFullscreen, buffering, isAdPlaying]);
 
   const handleDownloadVideo = useCallback(async () => {
-  if (!selectedTorrent || !movieInfo) return;
+    if (!selectedTorrent || !movieInfo) return;
 
-  try {
-    // Ensure the torrent URL is properly encoded once
-    const torrentUrl = encodeURIComponent(selectedTorrent.url);
-    
-    const params = new URLSearchParams({
-      torrent: torrentUrl,
-      quality: selectedTorrent.quality,
-      title: movieInfo.title,
-      imdbId: movieInfo.imdb_id || '',
-      type: 'video/mp4'
-    });
+    try {
+      const torrentUrl = encodeURIComponent(selectedTorrent.url);
 
-    const downloadUrl = `${TORRENT_BACKEND_URL}/download?${params.toString()}`;
-    
-    console.log('🔗 Download URL:', downloadUrl);
-    
-    // Test if the endpoint is reachable first
-    const testResponse = await fetch(`${TORRENT_BACKEND_URL}/health`);
-    if (!testResponse.ok) {
-      throw new Error('Download server is not available');
+      const params = new URLSearchParams({
+        torrent: torrentUrl,
+        quality: selectedTorrent.quality,
+        title: movieInfo.title,
+        imdbId: movieInfo.imdb_id || "",
+        type: "video/mp4",
+      });
+
+      const downloadUrl = `${TORRENT_BACKEND_URL}/download?${params.toString()}`;
+
+      console.log("🔗 Download URL:", downloadUrl);
+
+      const testResponse = await fetch(`${TORRENT_BACKEND_URL}/health`);
+      if (!testResponse.ok) {
+        throw new Error("Download server is not available");
+      }
+
+      const a = document.createElement("a");
+      a.href = downloadUrl;
+      a.style.display = "none";
+      a.target = "_blank";
+
+      const fileExtension =
+        selectedTorrent.type === "bluray" ? "mkv" : "mp4";
+      a.download = `${movieInfo.title} (${selectedTorrent.quality}).${fileExtension}`;
+
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error("❌ Download failed:", error);
+      alert(`Download failed: ${error}. Please try again later.`);
     }
-
-    // Create and trigger download
-    const a = document.createElement('a');
-    a.href = downloadUrl;
-    a.style.display = 'none';
-    a.target = '_blank'; // Open in new tab to avoid navigation issues
-    
-    const fileExtension = selectedTorrent.type === 'bluray' ? 'mkv' : 'mp4';
-    a.download = `${movieInfo.title} (${selectedTorrent.quality}).${fileExtension}`;
-    
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-  } catch (error) {
-    console.error('❌ Download failed:', error);
-    alert(`Download failed: ${error}. Please try again later.`);
-  }
-}, [selectedTorrent, movieInfo]);
-
+  }, [selectedTorrent, movieInfo]);
 
   return (
-    <div className="sm:mt-30 mt-25 text-white flex justify-center items-start
+    <div
+      className="sm:mt-30 mt-25 text-white flex justify-center items-start
                    sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-2 sm:px-0
-                   flex-row flex-wrap border-t border-gray-800/40">
-      <div 
+                   flex-row flex-wrap"
+    >
+      <div
         ref={containerRef}
-        className="relative group w-full max-h-[500px] rounded-xl overflow-hidden" 
+        className="relative group w-full max-h-[500px] rounded-xl overflow-hidden border border-gray-600/20" 
         onMouseMove={showControlsTemporarily}
-        onMouseLeave={() => !buffering && setShowControls(false)}
-        style={{ aspectRatio: '16/9', maxWidth: '1600px' }} 
+        onMouseLeave={() =>
+          !buffering && !isAdPlaying && setShowControls(false)
+        }
+        style={{ aspectRatio: "16/9", maxWidth: "1600px" }}
       >
-        
-        {selectedTorrent && showControls && (
-            <div className="absolute top-4 right-4 z-30 text-xs sm:text-sm bg-black/50 text-white/90 px-2 py-2 rounded-sm backdrop-blur-sm">
-                {movieInfo?.title} - {selectedTorrent.quality} 
+        {/* Ad Overlay */}
+        {isAdPlaying && adMediaUrl && (
+          <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
+            <div className="relative w-full h-full">
+              <video
+                ref={adVideoRef}
+                src={adMediaUrl}
+                autoPlay
+                muted={false}
+                onTimeUpdate={handleAdTimeUpdate}
+                onEnded={skipAd}
+                className="w-full h-full object-contain"
+                playsInline
+                style={{ aspectRatio: "16/9" }}
+              />
+
+              {/* Ad Controls */}
+              <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
+                <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-2 py-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                  <span className="text-white text-sm font-medium">
+                    Advertisement
+                  </span>
+                </div>
+
+                {canSkipAd && (
+                  <button
+                    onClick={skipAd}
+                    className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors"
+                  >
+                    <span>Skip Ad</span>
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
             </div>
+          </div>
         )}
 
-        {buffering && (
+        {selectedTorrent && showControls && !isAdPlaying && (
+          <div className="absolute top-4 right-4 z-30 text-xs sm:text-sm bg-black/50 text-white/90 px-2 py-2 rounded-lg backdrop-blur-sm">
+            {movieInfo?.title} - {selectedTorrent.quality}
+          </div>
+        )}
+
+        {buffering && !isAdPlaying && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20 bg-black/50">
             <Spinner />
           </div>
         )}
 
-         {showControls && torrents.length > 1 && (
-          <div className="absolute bottom-16 right-4 rounded-md z-30">
+        {showControls && torrents.length > 1 && !isAdPlaying && (
+          <div className="absolute bottom-16 right-4 rounded-lg z-30">
             <select
               value={selectedTorrent?.quality}
               onChange={(e) => {
-                const newTorrent = torrents.find((t) => t.quality === e.target.value);
+                const newTorrent = torrents.find(
+                  (t) => t.quality === e.target.value
+                );
                 if (newTorrent) handleTorrentSelect(newTorrent);
               }}
-              className="bg-black/50 text-white text-xs rounded-md px-2 pr-6 py-2 appearance-none relative"
+              className="bg-black/50 text-white text-xs rounded-lg px-2 pr-6 py-2 appearance-none relative"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'><path d='M5.5 7l4.5 4.5L14.5 7z'/></svg>\")",
@@ -534,51 +827,53 @@ export default function ProfessionalVideoPlayer() {
                 </option>
               ))}
             </select>
-
           </div>
         )}
 
-        
+        {/* Main Video */}
+        {/* **FIX 2:** Removed the `controls` prop to prevent conflicts with custom UI */}
         <video
           ref={videoRef}
-          className="w-full h-full border border-gray-800/20"
+          className="w-full h-full object-contain"
           onLoadedMetadata={handleLoadedMetadata}
           onTimeUpdate={handleTimeUpdate}
           onWaiting={handleWaiting}
           onPlaying={handlePlaying}
           onPlay={handlePlay}
           onPause={handlePause}
-          onProgress={handleProgress} 
-          onClick={togglePlay}
-          crossOrigin="anonymous" 
+          onProgress={handleProgress}
+          onClick={isAdPlaying ? undefined : togglePlay}
+          crossOrigin="anonymous"
           controls
+          autoPlay
+          playsInline
+          style={{ aspectRatio: "16/9" }}
         >
           {selectedTorrent && (
-            <source
-              src={getStreamUrl(selectedTorrent)}
-              type="video/mp4"
-            />
+            <source src={getStreamUrl(selectedTorrent)} type="video/mp4" />
           )}
-          {subtitleBlobUrl && (
+          {subtitleBlobUrl && !isAdPlaying && (
             <track
               kind="subtitles"
               src={subtitleBlobUrl}
               srcLang={selectedSubtitle}
-              label={subtitleLanguages.find(l => l.code === selectedSubtitle)?.name || selectedSubtitle}
+              label={
+                subtitleLanguages.find((l) => l.code === selectedSubtitle)
+                  ?.name || selectedSubtitle
+              }
               default
             />
           )}
         </video>
       </div>
 
-     <MovieDetailsAtPlayer 
-        movieInfo={movieInfo!} 
-        subtitleLanguages={subtitleLanguages} 
+      <MovieDetailsAtPlayer
+        movieInfo={movieInfo!}
+        subtitleLanguages={subtitleLanguages}
         loading={loading}
         onDownload={handleDownloadVideo}
         isDownloadable={!!selectedTorrent && !!movieInfo}
-     />
-
+      />
     </div>
   );
 }

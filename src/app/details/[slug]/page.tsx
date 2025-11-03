@@ -79,7 +79,7 @@ export default function Details() {
        isMovieLoading={isMovieLoading}
        selectedMovie={selectedMovie!} suggestedMovies={suggestedMovies || []} />
 
-       <HilltopAds/>
+      <HilltopAds/>
     </section>
   );
 }
