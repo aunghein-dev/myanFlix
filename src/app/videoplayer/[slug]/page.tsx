@@ -578,6 +578,7 @@ export default function ProfessionalVideoPlayer() {
         onDownload={handleDownloadVideo}
         isDownloadable={!!selectedTorrent && !!movieInfo}
      />
+
     </div>
   );
 }

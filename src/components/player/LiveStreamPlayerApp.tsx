@@ -408,7 +408,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match }) => {
     );
   }
 
-  // --- JSX Rendering (Kept as is) ---
+
   return (
     <div 
       ref={containerRef} 

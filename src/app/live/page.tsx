@@ -9,7 +9,9 @@ import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
 import ErrorView from "@/components/ErrorView";
+import dynamic from 'next/dynamic';
 
+const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
 export const uniqueMatches = (matches: FootballMatch[] = []) => {
@@ -218,6 +220,7 @@ export default function LivePage() {
           <LineFbMatchList liveMatchesList={upComingMatchesToShow} title="Upcoming" link="/live" />
         }
       </div>
+      <HilltopAds/>
     </section>
   );
 }

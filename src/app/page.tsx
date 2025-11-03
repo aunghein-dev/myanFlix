@@ -11,6 +11,9 @@ import LineFbMatchList from "@/components/layout/LineFbMatchList";
 import type { FootballMatch } from "@/components/cards/FootballMatchCard";
 import Spinner from "@/components/atoms/Spinner";
 import { uniqueMatches } from "./live/page";
+import dynamic from 'next/dynamic';
+
+const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 
 export interface TMDBResponse<T> {
   results: T[];
@@ -162,6 +165,7 @@ export default function Home() {
           )
         }
       </div>
+      <HilltopAds/>
     </div>
   );
 }
