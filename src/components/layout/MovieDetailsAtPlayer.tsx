@@ -15,16 +15,17 @@ export interface MovieDetailsAtPlayerProps {
   isDownloadable?: boolean;
 }
 
-const SMART_LINK_AD_URL = 'https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57';
+
 
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
   const handleDownloadClick = () => {
     if (onDownload) {
-      window.open(SMART_LINK_AD_URL, '_blank');
+      window.open("/api/ad", "_blank");
       onDownload();
     }
   };
+
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
   return (
