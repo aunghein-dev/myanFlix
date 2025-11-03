@@ -47,12 +47,15 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
       
-
         <Container>
           {children}
         </Container>
 
-
+        <Script
+          src='//pl27965725.effectivegatecpm.com/9a/61/56/9a6156d154dc1851a1897a71a24d9eb2.js'
+          strategy="afterInteractive" 
+          id="myanflix-social-bar-ad" 
+        />
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"
           strategy="afterInteractive"
@@ -65,12 +68,7 @@ export default function RootLayout({
             gtag('config', 'G-YMXJE571BD');
           `}
         </Script>
-        <Script
-          src='//pl27965725.effectivegatecpm.com/9a/61/56/9a6156d154dc1851a1897a71a24d9eb2.js'
-          strategy="lazyOnload" 
-          id="myanflix-social-bar-ad" 
-        />
-
+       
 
       </body>
     </html>
