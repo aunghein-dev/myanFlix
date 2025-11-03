@@ -5,7 +5,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Spinner from "@/components/atoms/Spinner";
 import { MovieDetails } from "@/app/details/[slug]/page";
 import MovieDetailsAtPlayer from "@/components/layout/MovieDetailsAtPlayer";
-import { X, Volume2, VolumeX } from "lucide-react";
+import { X } from "lucide-react";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL;
@@ -42,63 +42,57 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-    "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=",
-  adFrequency: 30, // Show ad every 30 minutes
+    "https://vivid-wave.com/dKm.F/z/dEGIN/vqZPGWUI/Me/m/9/uVZqUilNkkPoTWYk2KO/T/M/x/NpT/Y/twNPjEYC5/M/z/EM1oNyyeZCsCaFWc1ApJdUDK0gxv",
+  adFrequency: 20, // Show ad every 20 minutes
   skipOffset: 5, // Allow skip after 5 seconds
   preRoll: true,
   midRoll: true,
   postRoll: true,
 };
 
+
 // VAST Parser
 class VASTParser {
-  static async parse(
-    vastUrl: string
-  ): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
+  static async parse(vastUrl: string): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
     try {
       const response = await fetch(vastUrl);
       const xmlText = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
+      
       // Extract media file URL
-      const mediaFile = xmlDoc.querySelector("MediaFile");
+      const mediaFile = xmlDoc.querySelector('MediaFile');
       const mediaUrl = mediaFile?.textContent;
-
+      
       // Extract duration
-      const durationElem = xmlDoc.querySelector("Duration");
-      const durationText = durationElem?.textContent || "00:00:30";
+      const durationElem = xmlDoc.querySelector('Duration');
+      const durationText = durationElem?.textContent || '00:00:30';
       const duration = this.parseDuration(durationText);
-
+      
       // Extract skip offset
-      const skipable = xmlDoc.querySelector("Linear[skipoffset]");
-      const skipOffset = skipable
-        ? this.parseDuration(skipable.getAttribute("skipoffset") || "00:00:05")
-        : 5;
+      const skipable = xmlDoc.querySelector('Linear[skipoffset]');
+      const skipOffset = skipable ? this.parseDuration(skipable.getAttribute('skipoffset') || '00:00:05') : 5;
 
       if (mediaUrl) {
         return { mediaUrl, duration, skipOffset };
       }
     } catch (error) {
-      console.error("VAST parsing error:", error);
+      console.error('VAST parsing error:', error);
     }
     return null;
   }
 
   static parseDuration(duration: string): number {
-    if (duration.includes(":")) {
-      const parts = duration.split(":");
+    if (duration.includes(':')) {
+      const parts = duration.split(':');
       if (parts.length === 3) {
-        return (
-          parseInt(parts[0]) * 3600 +
-          parseInt(parts[1]) * 60 +
-          parseInt(parts[2])
-        );
+        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
       }
     }
     return parseInt(duration) || 30;
   }
 }
+
 
 export default function ProfessionalVideoPlayer() {
   const router = useRouter();
@@ -811,7 +805,7 @@ export default function ProfessionalVideoPlayer() {
                 );
                 if (newTorrent) handleTorrentSelect(newTorrent);
               }}
-              className="bg-black/50 text-white text-xs rounded-lg px-2 pr-6 py-2 appearance-none relative"
+              className="bg-black/50 text-white text-sm rounded-lg px-2 pr-6 py-2 appearance-none relative"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'><path d='M5.5 7l4.5 4.5L14.5 7z'/></svg>\")",

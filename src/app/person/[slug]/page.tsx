@@ -10,9 +10,7 @@ import { Person } from "@/components/layout/LineCharacterList";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import useSWR from "swr";
 import Spinner from "@/components/atoms/Spinner";
-import dynamic from 'next/dynamic';
 
-const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 
 interface PersonDetails {
   biography: string;
@@ -140,7 +138,6 @@ export default function PersonPage() {
 
       <PersonRelateGrid movies={movies} isLoading={isMoviesLoading} />
       <RelatedCeleGrid celebrities={relatedCelebrities ?? []} isLoading={isMoviesLoading || isRelatedLoading}/>
-      <HilltopAds/>
     </div>
   );
 }

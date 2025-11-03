@@ -8,9 +8,7 @@ import useSWR from "swr";
 import { useParams } from "next/navigation";
 import { useMemo } from "react";
 import Spinner from "@/components/atoms/Spinner";
-import dynamic from 'next/dynamic';
 
-const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -264,7 +262,7 @@ export default function CategoryPage() {
           </div>
         ))}
       </div>
-      <HilltopAds/>
+
     </section>
   );
 }

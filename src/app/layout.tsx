@@ -33,11 +33,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+
 export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <html lang="en">
       <head>
@@ -45,11 +47,11 @@ export default function RootLayout({
           name="3d8d6d5c630cf7bff57658c89757a9d557fabb25"
           content="3d8d6d5c630cf7bff57658c89757a9d557fabb25"
         />
+        <meta name="referrer" content="no-referrer-when-downgrade" />
       </head>
 
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Container>{children}</Container>
-
 
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"

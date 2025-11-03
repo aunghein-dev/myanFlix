@@ -6,9 +6,6 @@ import DetailsInfoOnHero from "../../../components/layout/DetailsInfoOnHero";
 import DetailsFooter from "../../../components/layout/DetailsFooter";
 import { useMovieDetails } from "@/hook/useMovieDetails";
 import Spinner from "@/components/atoms/Spinner";
-import dynamic from 'next/dynamic';
-
-const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 
 interface Images {
   backdrops: { file_path: string }[];
@@ -79,7 +76,6 @@ export default function Details() {
        isMovieLoading={isMovieLoading}
        selectedMovie={selectedMovie!} suggestedMovies={suggestedMovies || []} />
 
-      <HilltopAds/>
     </section>
   );
 }

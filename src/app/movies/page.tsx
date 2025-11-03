@@ -5,9 +5,7 @@ import { Movie } from "../../types/movie";
 import useSWR from "swr";
 import { fetcher } from "../../lib/fetcher";
 import { useMemo } from "react";
-import dynamic from 'next/dynamic';
 
-const HilltopAds = dynamic(() => import('@/components/ads/HilltopAds'), { ssr: false });
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const BASE_URL = "https://api.themoviedb.org/3";
@@ -282,7 +280,7 @@ export default function MoviesPage() {
           />
         ))}
       </div>
-      <HilltopAds />
+
     </section>
   );
 }

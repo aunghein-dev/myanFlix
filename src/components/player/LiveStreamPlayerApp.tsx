@@ -41,8 +41,8 @@ interface AdConfig {
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://pubads.g.doubleclick.net/gampad/ads?iu=/21775744923/external/single_ad_samples&sz=640x480&cust_params=sample_ct%3Dlinear&ciu_szs=300x250%2C728x90&gdfp_req=1&output=vast&unviewed_position_start=1&env=vp&impl=s&correlator=",
-  adFrequency: 30, // Show ad every 30 minutes
+  vastUrl: "https://vivid-wave.com/dKm.F/z/dEGIN/vqZPGWUI/Me/m/9/uVZqUilNkkPoTWYk2KO/T/M/x/NpT/Y/twNPjEYC5/M/z/EM1oNyyeZCsCaFWc1ApJdUDK0gxv",
+  adFrequency: 20, // Show ad every 20 minutes
   skipOffset: 5 // Allow skip after 5 seconds
 };
 
@@ -281,26 +281,32 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }
   }, [finalAdConfig, isAdPlaying, isPlaying]);
 
-  // Skip ad
-  const skipAd = useCallback(() => {
-    if (adVideoRef.current) {
-      adVideoRef.current.pause();
-      // Ensure ad video source is cleared to prevent accidental reloads
-      adVideoRef.current.src = ""; 
-    }
-    setIsAdPlaying(false);
-    setAdMediaUrl(null);
-    
-    // Resume main content
-    if (videoRef.current) {
-        // Attempt to play if it was playing before the ad
-        if (isPlaying) { 
-             videoRef.current.play().catch(console.error);
-        } else if (videoRef.current.paused) {
-             // If video was paused before the ad, keep it paused, but ensure it's loaded
-        }
-    }
-  }, [isPlaying]);
+
+  // Skip ad
+  const skipAd = useCallback(() => {
+    // NEW: Ensure the adVideoRef current element exists before operating
+    const adVideo = adVideoRef.current;
+    if (adVideo) {
+      adVideo.pause();
+      // Ensure ad video source is cleared to prevent accidental reloads
+      adVideo.src = "";
+      adVideo.load(); // Call load() to stop fetching the old source
+    }
+
+    // Only set the flag to false *after* the video element is cleaned up
+    setIsAdPlaying(false);
+    setAdMediaUrl(null); // This is what triggers the removal from the DOM
+
+    // Resume main content
+    if (videoRef.current) {
+        // Attempt to play if it was playing before the ad
+        if (isPlaying) { 
+             videoRef.current.play().catch(console.error);
+        } else if (videoRef.current.paused) {
+             // If video was paused before the ad, keep it paused, but ensure it's loaded
+        }
+    }
+  }, [isPlaying]); // No change to dependencies
 
   // Handle ad time update
   const handleAdTimeUpdate = useCallback(() => {
@@ -556,29 +562,33 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }
   };
 
-  // --- FIXED: Ad Playback Logic (Removed redundant `adVideo.muted = false;` here) ---
-  const playAdVideo = useCallback(async () => {
-    const adVideo = adVideoRef.current;
-    if (isAdPlaying && adMediaUrl && adVideo) {
-      try {
-        // 1. Always start muted to satisfy autoplay
-        adVideo.muted = true;
-        // The HTML element property determines the initial muted state.
-        // We ensure the internal player state is correct:
-        adVideo.volume = 1; // Set volume to 1 for the ad
-        await adVideo.play();
-        
-        // 2. We now rely on the *user* to unmute the main player, 
-        // which will also control the ad volume as they are visually merged.
-        // The 'muted={false}' property in the Ad Overlay video element 
-        // is what handles the unmuting/volume setting from the main controls.
-      } catch (error) {
-        console.error("Ad autoplay failed:", error);
-        // Ad failed to play, skip it and resume content immediately
-        skipAd();
-      }
-    }
-  }, [isAdPlaying, adMediaUrl, skipAd]);
+  // LiveStreamPlayerApp.tsx:842 - Modified playAdVideo
+  const playAdVideo = useCallback(async () => {
+    const adVideo = adVideoRef.current;
+    if (isAdPlaying && adMediaUrl && adVideo) {
+      try {
+        adVideo.muted = true;
+        adVideo.volume = 1;
+
+        await adVideo.play();
+      } catch (error) {
+        // Check if the error is the specific AbortError from removal
+        if (error instanceof DOMException && error.name === 'AbortError') {
+          console.warn("Ad play aborted due to media removal/interrupt. Skipping ad.");
+        } else {
+          console.error("Ad autoplay failed:", error);
+        }
+        
+        // FIX: Manually pause and clear source before calling skipAd to clean up
+        // This ensures the video element's state is quiescent before unmounting.
+        adVideo.pause();
+        adVideo.src = "";
+        adVideo.load();
+        
+        skipAd();
+      }
+    }
+  }, [isAdPlaying, adMediaUrl, skipAd]);
 
   useEffect(() => {
     // We call this effect when adMediaUrl changes (when an ad is loaded)
@@ -607,7 +617,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   return (
     <div 
       ref={containerRef} 
-      className={`relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 ${
+      className={`relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 border border-gray-600/20 ${
           isControlsVisible ? '' : 'cursor-none' 
       }`}
     >
@@ -668,7 +678,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
       )}
 
       {isBuffering && !isAdPlaying && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 min-h-screen">
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
           <Spinner />
         </div>
       )}

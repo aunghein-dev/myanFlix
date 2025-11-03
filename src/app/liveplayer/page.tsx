@@ -5,7 +5,7 @@ import LivePlayerContent from "./LivePlayerContent";
 
 export default function LivePlayerPage() {
   return (
-    <Suspense fallback={<Spinner />}>
+    <Suspense fallback={<Spinner className="min-h-screen flex items-center justify-center" />}>
       <LivePlayerContent />
     </Suspense>
   );
