@@ -44,6 +44,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <meta name="6a97888e-site-verification" content="940b344974dd8204617dee7ef2b58a73"/>
+        <meta
+          httpEquiv="Delegate-CH"
+          content="Sec-CH-UA https://s.magsrv.com; Sec-CH-UA-Mobile https://s.magsrv.com; Sec-CH-UA-Arch https://s.magsrv.com; Sec-CH-UA-Model https://s.magsrv.com; Sec-CH-UA-Platform https://s.magsrv.com; Sec-CH-UA-Platform-Version https://s.magsrv.com; Sec-CH-UA-Bitness https://s.magsrv.com; Sec-CH-UA-Full-Version-List https://s.magsrv.com; Sec-CH-UA-Full-Version https://s.magsrv.com;"
+        />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Container>{children}</Container>

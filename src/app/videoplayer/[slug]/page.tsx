@@ -42,7 +42,7 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-    "https://vivid-wave.com/d/m/Fgz.dqGyNDvQZ/GkUB/ieOmA9ou/ZuUplskFPQT/YK2dO/TCMYx-NeTvYUt/NjjuYk5KMEztEI1aNuwv",
+    "https://s.magsrv.com/v1/vast.php?idzone=5762622",
   adFrequency: 40,
   skipOffset: 6,
   preRoll: true,
