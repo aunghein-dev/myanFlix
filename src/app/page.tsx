@@ -11,6 +11,7 @@ import LineFbMatchList from "@/components/layout/LineFbMatchList";
 import type { FootballMatch } from "@/components/cards/FootballMatchCard";
 import Spinner from "@/components/atoms/Spinner";
 import { uniqueMatches } from "./live/page";
+import BannerAd from "@/components/ads/BannerAd";
 
 
 export interface TMDBResponse<T> {
@@ -142,6 +143,7 @@ export default function Home() {
             </div>
           )
         }
+
         <LineMovieList title="Adventure" moviesList={adventureMovies} link="/movies/categories/adventure" loading={adventureLoading} />
         <LineMovieList title="K-Drama" moviesList={kDramaMovies} link="/movies/categories/kdrama" loading={kDramaLoading}/>
         <LineMovieList title="Bollywood" moviesList={indianMovies} link="/movies/categories/indian" loading={indianLoading}/>
