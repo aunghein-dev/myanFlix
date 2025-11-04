@@ -42,57 +42,147 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-    "https://vivid-wave.com/dKm.F/z/dEGIN/vqZPGWUI/Me/m/9/uVZqUilNkkPoTWYk2KO/T/M/x/NpT/Y/twNPjEYC5/M/z/EM1oNyyeZCsCaFWc1ApJdUDK0gxv",
-  adFrequency: 20, // Show ad every 20 minutes
-  skipOffset: 5, // Allow skip after 5 seconds
+    "https://vivid-wave.com/d/m/Fgz.dqGyNDvQZ/GkUB/ieOmA9ou/ZuUplskFPQT/YK2dO/TCMYx-NeTvYUt/NjjuYk5KMEztEI1aNuwv",
+  adFrequency: 40,
+  skipOffset: 6,
   preRoll: true,
   midRoll: true,
   postRoll: true,
 };
 
-
-// VAST Parser
+// --- NEW VASTParser ---
 class VASTParser {
-  static async parse(vastUrl: string): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
+  static async parse(vastUrl: string, maxWrappers = 5): Promise<{
+    mediaUrl: string;
+    duration: number;
+    skipOffset: number;
+    impressions: string[];
+    trackingEvents: { [event: string]: string[] };
+  } | null> {
+    if (maxWrappers <= 0) {
+      console.error("VAST wrapper limit reached");
+      return null;
+    }
+
     try {
       const response = await fetch(vastUrl);
       const xmlText = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      
-      // Extract media file URL
-      const mediaFile = xmlDoc.querySelector('MediaFile');
-      const mediaUrl = mediaFile?.textContent;
-      
-      // Extract duration
-      const durationElem = xmlDoc.querySelector('Duration');
-      const durationText = durationElem?.textContent || '00:00:30';
-      const duration = this.parseDuration(durationText);
-      
-      // Extract skip offset
-      const skipable = xmlDoc.querySelector('Linear[skipoffset]');
-      const skipOffset = skipable ? this.parseDuration(skipable.getAttribute('skipoffset') || '00:00:05') : 5;
 
-      if (mediaUrl) {
-        return { mediaUrl, duration, skipOffset };
+      // Check for Wrapper
+      const wrapperAdTag = xmlDoc.querySelector("VASTAdTagURI");
+      if (wrapperAdTag?.textContent) {
+        const nextVastUrl = wrapperAdTag.textContent.trim();
+        // Recurse, but also collect wrapper impressions & tracking
+        const wrappedData = await this.parse(nextVastUrl, maxWrappers - 1);
+        if (!wrappedData) return null; // Failed down the line
+
+        // Collect impressions & tracking from THIS wrapper
+        const impressions = this.getTrackingEvents(xmlDoc, "Impression");
+        const trackingEvents = this.getLinearTrackingEvents(xmlDoc);
+
+        // Merge with data from the final inline ad
+        return {
+          ...wrappedData,
+          impressions: [...impressions, ...wrappedData.impressions],
+          trackingEvents: this.mergeTracking(trackingEvents, wrappedData.trackingEvents),
+        };
       }
+
+      // --- This is an Inline response ---
+      
+      // Media file
+      // Prioritize MP4 files
+      const mediaFiles = Array.from(xmlDoc.querySelectorAll("MediaFile"));
+      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/mp4');
+      const mediaFile = mp4Media || mediaFiles.find(mf => mf.getAttribute('delivery') === 'progressive');
+      const mediaUrl = mediaFile?.textContent?.trim();
+
+      if (!mediaUrl) {
+         console.error("No compatible MediaFile found in VAST inline response.");
+         return null;
+      }
+
+      // Duration
+      const durationElem = xmlDoc.querySelector("Duration");
+      const durationText = durationElem?.textContent || "00:00:30";
+      const duration = this.parseDuration(durationText);
+
+      // Skip offset
+      const linear = xmlDoc.querySelector("Linear");
+      const skipOffsetRaw = linear?.getAttribute("skipoffset");
+      const skipOffset = skipOffsetRaw ? this.parseDuration(skipOffsetRaw) : 5;
+
+      // Impressions
+      const impressions = this.getTrackingEvents(xmlDoc, "Impression");
+
+      // Tracking Events
+      const trackingEvents = this.getLinearTrackingEvents(xmlDoc);
+
+      return { mediaUrl, duration, skipOffset, impressions, trackingEvents };
     } catch (error) {
-      console.error('VAST parsing error:', error);
+      console.error("VAST parsing error:", error);
+      return null;
     }
-    return null;
+  }
+  
+  static parseDuration(duration: string): number {
+    if (duration.includes(":")) {
+      const parts = duration.split(":");
+      if (parts.length === 3) {
+        return (
+          parseInt(parts[0]) * 3600 +
+          parseInt(parts[1]) * 60 +
+          parseFloat(parts[2]) // Use parseFloat for milliseconds
+        );
+      }
+    }
+    // Handle percentage-based skipoffset (e.g., "15%") - treat as 15s for simplicity
+    if (duration.includes("%")) {
+         return parseInt(duration) || 5; 
+    }
+    return parseFloat(duration) || 30; // Use parseFloat
   }
 
-  static parseDuration(duration: string): number {
-    if (duration.includes(':')) {
-      const parts = duration.split(':');
-      if (parts.length === 3) {
-        return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
+  // Helper to get <Impression> tags
+  static getTrackingEvents(xmlDoc: Document, eventName: string): string[] {
+    return Array.from(xmlDoc.querySelectorAll(eventName))
+      .map((e) => e.textContent?.trim())
+      .filter(Boolean) as string[];
+  }
+
+  // Helper to get <Tracking event="..."> tags
+  static getLinearTrackingEvents(xmlDoc: Document): { [event: string]: string[] } {
+    const events: { [event: string]: string[] } = {};
+    const trackingElems = xmlDoc.querySelectorAll("Linear > TrackingEvents > Tracking");
+    
+    trackingElems.forEach(elem => {
+      const eventName = elem.getAttribute("event");
+      const url = elem.textContent?.trim();
+      if (eventName && url) {
+        if (!events[eventName]) events[eventName] = [];
+        events[eventName].push(url);
       }
+    });
+    return events;
+  }
+  
+  // Helper to merge tracking events from wrappers
+  static mergeTracking(
+    wrapperEvents: { [event: string]: string[] },
+    inlineEvents: { [event: string]: string[] }
+  ): { [event: string]: string[] } {
+    const merged = { ...inlineEvents };
+    for (const eventName in wrapperEvents) {
+      merged[eventName] = [
+        ...(merged[eventName] || []),
+        ...wrapperEvents[eventName],
+      ];
     }
-    return parseInt(duration) || 30;
+    return merged;
   }
 }
-
 
 export default function ProfessionalVideoPlayer() {
   const router = useRouter();
@@ -218,6 +308,7 @@ export default function ProfessionalVideoPlayer() {
       try {
         const adData = await VASTParser.parse(adConfig.vastUrl);
         if (adData) {
+          adData.impressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
           setIsAdPlaying(true);
           setAdMediaUrl(adData.mediaUrl);
           setAdDuration(adData.duration);

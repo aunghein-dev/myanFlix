@@ -34,16 +34,16 @@ export interface GroupedStreams {
 interface AdConfig {
   enabled: boolean;
   vastUrl: string;
-  adFrequency: number; // in minutes
-  skipOffset: number; // in seconds
+  adFrequency: number; 
+  skipOffset: number; 
 }
 
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://vivid-wave.com/dKm.F/z/dEGIN/vqZPGWUI/Me/m/9/uVZqUilNkkPoTWYk2KO/T/M/x/NpT/Y/twNPjEYC5/M/z/EM1oNyyeZCsCaFWc1ApJdUDK0gxv",
-  adFrequency: 20, // Show ad every 20 minutes
-  skipOffset: 5 // Allow skip after 5 seconds
+  vastUrl: "https://vivid-wave.com/d/m/Fgz.dqGyNDvQZ/GkUB/ieOmA9ou/ZuUplskFPQT/YK2dO/TCMYx-NeTvYUt/NjjuYk5KMEztEI1aNuwv",
+  adFrequency: 40, 
+  skipOffset: 6
 };
 
 // --- Utilities ---
@@ -61,40 +61,52 @@ const groupServers = (servers: StreamServer[]): GroupedStreams => {
   return grouped;
 };
 
-// VAST Parser
 class VASTParser {
-  static async parse(vastUrl: string): Promise<{ mediaUrl: string; duration: number; skipOffset: number } | null> {
+  static async parse(vastUrl: string): Promise<{
+    mediaUrl: string;
+    duration: number;
+    skipOffset: number;
+    impressions: string[];
+  } | null> {
     try {
       const response = await fetch(vastUrl);
       const xmlText = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-      
-      // Extract media file URL
-      const mediaFile = xmlDoc.querySelector('MediaFile');
-      const mediaUrl = mediaFile?.textContent;
-      
-      // Extract duration
-      const durationElem = xmlDoc.querySelector('Duration');
-      const durationText = durationElem?.textContent || '00:00:30';
-      const duration = this.parseDuration(durationText);
-      
-      // Extract skip offset
-      const skipable = xmlDoc.querySelector('Linear[skipoffset]');
-      const skipOffset = skipable ? this.parseDuration(skipable.getAttribute('skipoffset') || '00:00:05') : 5;
 
-      if (mediaUrl) {
-        return { mediaUrl, duration, skipOffset };
-      }
+      // Media file
+      const mediaFile = xmlDoc.querySelector("MediaFile");
+      const mediaUrl = mediaFile?.textContent;
+
+      if (!mediaUrl) return null;
+
+      // Duration
+      const durationElem = xmlDoc.querySelector("Duration");
+      const durationText = durationElem?.textContent || "00:00:30";
+      const duration = this.parseDuration(durationText);
+
+      // Skip offset
+      const skipable = xmlDoc.querySelector("Linear[skipoffset]");
+      const skipOffset = skipable
+        ? this.parseDuration(skipable.getAttribute("skipoffset") || "00:00:05")
+        : 5;
+
+      // Impressions
+      const impressionElems = xmlDoc.querySelectorAll("Impression");
+      const impressions = Array.from(impressionElems)
+        .map((e) => e.textContent)
+        .filter(Boolean) as string[];
+
+      return { mediaUrl, duration, skipOffset, impressions };
     } catch (error) {
-      console.error('VAST parsing error:', error);
+      console.error("VAST parsing error:", error);
+      return null;
     }
-    return null;
   }
 
   static parseDuration(duration: string): number {
-    if (duration.includes(':')) {
-      const parts = duration.split(':');
+    if (duration.includes(":")) {
+      const parts = duration.split(":");
       if (parts.length === 3) {
         return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
       }
@@ -254,32 +266,34 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   // --- FIX: Use a ref for prerollPlayed to ensure it only happens once ---
   const prerollPlayedRef = useRef(false);
 
-  // Load and play ad
   const playAd = useCallback(async () => {
-    if (!finalAdConfig.enabled || isAdPlaying) return;
+  if (!finalAdConfig.enabled || isAdPlaying) return;
 
-    try {
-      const adData = await VASTParser.parse(finalAdConfig.vastUrl);
-      if (adData) {
-        playTimeRef.current = 0;
-        setIsAdPlaying(true);
-        setAdMediaUrl(adData.mediaUrl);
-        setAdDuration(adData.duration);
-        setAdSkipOffset(adData.skipOffset);
-        setCanSkipAd(false);
-        setAdCurrentTime(0);
-        setAdProgress(0);
+  try {
+    const adData = await VASTParser.parse(finalAdConfig.vastUrl);
+    if (adData) {
+      // Fire impression URLs immediately
+      adData.impressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
 
-        // Pause main content
-        if (videoRef.current && isPlaying) {
-          videoRef.current.pause();
-        }
+      playTimeRef.current = 0;
+      setIsAdPlaying(true);
+      setAdMediaUrl(adData.mediaUrl);
+      setAdDuration(adData.duration);
+      setAdSkipOffset(adData.skipOffset);
+      setCanSkipAd(false);
+      setAdCurrentTime(0);
+      setAdProgress(0);
+
+      // Pause main content
+      if (videoRef.current && isPlaying) {
+        videoRef.current.pause();
       }
-    } catch (error) {
-      console.error('Failed to load ad:', error);
-      setIsAdPlaying(false);
     }
-  }, [finalAdConfig, isAdPlaying, isPlaying]);
+  } catch (error) {
+    console.error("Failed to load ad:", error);
+    setIsAdPlaying(false);
+  }
+}, [finalAdConfig, isAdPlaying, isPlaying]);
 
 
   // Skip ad
