@@ -11,7 +11,6 @@ import LineFbMatchList from "@/components/layout/LineFbMatchList";
 import type { FootballMatch } from "@/components/cards/FootballMatchCard";
 import Spinner from "@/components/atoms/Spinner";
 import { uniqueMatches } from "./live/page";
-import BannerAd from "@/components/ads/BannerAd";
 
 
 export interface TMDBResponse<T> {

@@ -41,9 +41,9 @@ interface AdConfig {
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://s.magsrv.com/v1/vast.php?idzone=5762622",
-  adFrequency: 40, 
-  skipOffset: 6
+  vastUrl: "https://vivid-wave.com/dlm_F.zZdmGZNbvRZIGMUq/Le/mf9luYZ/UHlNkyPVT_Ys2pOpTrM/x/NbTTYltIN/j_Yo5SMtzpE/1kN/wH",
+  adFrequency: 42, 
+  skipOffset: 10
 };
 
 // --- Utilities ---

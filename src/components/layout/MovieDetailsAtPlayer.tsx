@@ -18,14 +18,21 @@ export interface MovieDetailsAtPlayerProps {
 
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
-  const handleDownloadClick = () => {
-    window.open("/api/ad", "_blank");
-    setTimeout(() => {
-      if (onDownload) {
-        onDownload();
-      }
-    }, 50);   
+ const handleDownloadClick = () => {
+
+  const urls = ["/api/smart/hilltop", "/api/smart/adsterra"];
+
+    urls.forEach((url) => {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_blank";       
+      a.rel = "noopener noreferrer"; 
+      a.click();
+    });
+
+    onDownload?.();
   };
+
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
   return (

@@ -42,9 +42,9 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-    "https://s.magsrv.com/v1/vast.php?idzone=5762622",
-  adFrequency: 40,
-  skipOffset: 6,
+    "https://vivid-wave.com/dlm_F.zZdmGZNbvRZIGMUq/Le/mf9luYZ/UHlNkyPVT_Ys2pOpTrM/x/NbTTYltIN/j_Yo5SMtzpE/1kN/wH",
+  adFrequency: 50,
+  skipOffset: 10,
   preRoll: true,
   midRoll: true,
   postRoll: true,
@@ -134,7 +134,7 @@ class VASTParser {
         return (
           parseInt(parts[0]) * 3600 +
           parseInt(parts[1]) * 60 +
-          parseFloat(parts[2]) // Use parseFloat for milliseconds
+          parseFloat(parts[2])
         );
       }
     }
