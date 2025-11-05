@@ -26,7 +26,8 @@ export default function MovieCard({ movie }: MovieCardProps) {
 
         {/* Hover overlay */}
         <div className="absolute inset-0 rounded-lg bg-black/0 group-hover:bg-black/20 transition-colors duration-150 ease-out flex flex-col justify-end p-2 pointer-events-none">
-          <span className="text-white/40 text-xs mt-1 select-none">
+          <span className="text-white/80 text-xs mt-1 select-none flex flex-0 w-[35px] px-1 bg-black/50
+                          rounded-sm">
             {dayjs(movie.release_date).format("YYYY")}
           </span>
         </div>

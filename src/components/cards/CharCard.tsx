@@ -4,7 +4,7 @@ import { Person } from "../layout/LineCharacterList";
 export default function CharCard({ person }: { person: Person }) {
   return (
     <div
-      className="relative flex flex-col items-center text-center text-white transition-all ease-in duration-300 group"
+      className="relative flex flex-col items-center text-center text-white transition-all ease-in duration-300 group mt-3"
     >
       <GlobalImage
         width={100}
@@ -14,7 +14,7 @@ export default function CharCard({ person }: { person: Person }) {
         alt={person.name}
         className="max-w-25 h-25 min-w-25 rounded-full object-cover mb-2 transition-transform duration-200"
       />
-       <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-colors duration-150 ease-out pointer-events-none"/>
+       <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150 ease-out pointer-events-none"/>
       <p className="text-xs font-medium truncate text-slate-200/50">{person.name}</p>
     </div>
   )

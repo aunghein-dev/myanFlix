@@ -259,10 +259,11 @@ export default function ProfessionalVideoPlayer() {
         `https://api.themoviedb.org/3/movie/${slug}?api_key=${API_KEY}`
       );
       const movieData = await movieRes.json();
+      
 
       if (!movieData.imdb_id)
         throw new Error("IMDb ID not found. Cannot fetch torrents.");
-
+        
       const ytsRes = await fetch(
         `https://yts.mx/api/v2/movie_details.json?imdb_id=${movieData.imdb_id}`
       );

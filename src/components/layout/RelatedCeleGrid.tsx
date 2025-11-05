@@ -7,7 +7,7 @@ import Spinner from "../atoms/Spinner";
 export default function RelatedCeleGrid({ celebrities, isLoading} : { celebrities : Person[], isLoading?: boolean }) {
   return (
     <div>
-      <h1 className="text-lg font-bold text-white mt-4 mb-3 select-none">Related Celebrities</h1>
+      <h1 className="font-oswald text-lg font-bold text-white mt-4 mb-3 select-none">Related Celebrities</h1>
       {
         isLoading ? <Spinner className="min-h-[200px]"/> : (
           <div className="flex flex-row flex-wrap">

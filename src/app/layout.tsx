@@ -4,6 +4,8 @@ import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
 import SocialBarAd from "@/components/ads/SocialBarAd";
+import Head from "next/head";
+
 
 export const metadata: Metadata = {
   title: "myanFlix — Watch Free Movies & Live Football Streaming in HD",
@@ -46,11 +48,13 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <head>
-      </head>
+      <Head>
+        <link rel="icon" href="/favicon.ico"/>
+      </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
         <SocialBarAd position="auto" zIndex={9000} />
         <Container>{children}</Container>
+        
 
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"

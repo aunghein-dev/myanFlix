@@ -36,7 +36,7 @@ export const endpoints = {
   if (!movie.release_date) return false;
   const releaseYear = new Date(movie.release_date).getFullYear();
   const currentYear = new Date().getFullYear();
-  return releaseYear >= currentYear - 10; 
+  return releaseYear >= currentYear - 7; 
  }
 
 
@@ -80,34 +80,34 @@ export default function Home() {
   const activeMovie = heroMovies[activeIndex];
 
   const trendingMovies = useMemo(
-    () => trendingData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => trendingData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [trendingData]
   );
   const actionMovies = useMemo(
-    () => actionData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => actionData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [actionData]
   );
   const adventureMovies = useMemo(
-    () => adventureData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => adventureData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [adventureData]
   );
   const kDramaMovies = useMemo(
-    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [kDramaData]
   );
   const indianMovies = useMemo(
-    () => indianData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => indianData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [indianData]
   );
   const animeMovies = useMemo(
-    () => animeData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => animeData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [animeData]
   );
   const animationMovies = useMemo(
-    () => animationData?.results.filter(filterRecentMovies).slice(0, 20) ?? [],
+    () => animationData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
     [animationData]
   );
-  const topRatedMovies = topRatedData?.results.slice(0, 20) ?? [];
+  const topRatedMovies = topRatedData?.results.slice(0, 40) ?? [];
 
   const liveMatchesToShow = uniqueMatches(
     liveMatches?.filter((m) => m.match_status === "live")

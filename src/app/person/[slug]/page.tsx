@@ -128,7 +128,7 @@ export default function PersonPage() {
                   ? "Director"
                   : personData?.gender === 1 ? "Actress" : "Actor"}
               </h3>
-              <p className="text-sm text-white/50 line-clamp-7">
+              <p className="text-sm sm:text-md text-white/50 line-clamp-7">
                 {personData?.biography}
               </p>
             </div>
