@@ -16,7 +16,7 @@ export default function SearchModal(props : Props) {
   const { result, liveResult, isAllowedPage, setQuery } = props;
   return (
     <>
-      <div className="absolute -left-[100px] top-16 right-0 bg-black/90 min-h-20
+      <div className="absolute -left-[130px] sm:-left-40 top-13 sm:top-16 right-0 bg-gray-800/90 min-h-20
                             z-50 hover:shadow-lg shadow-white/15
                             rounded-xl flex flex-col overflow-y-scroll max-h-[400px]">
         {
@@ -38,9 +38,9 @@ export default function SearchModal(props : Props) {
                     />
                     <div className="ml-4 spax-y-1">
                       <h3 className="text-sm font-semibold text-white line-clamp-1">{movie.title}</h3>
-                      <p className="text-xs text-white/50">{dayjs(movie.release_date).format("YYYY")}</p>
+                      <p className="text-xs text-white/70">{dayjs(movie.release_date).format("YYYY")}</p>
 
-                      <p className="text-xs text-white/30 line-clamp-3">{movie.overview}</p>
+                      <p className="text-xs text-white/50 line-clamp-3">{movie.overview}</p>
                     </div>
                   </Link>
                 ))

@@ -3,7 +3,6 @@
 import NavbarData from "../data/navbar.data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Image from "next/image";
 import Search from "@/components/atoms/Search";
 import { useEffect, useState } from "react";
 import useSWR from "swr";
@@ -11,6 +10,7 @@ import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
 import SearchModal from "@/components/model/SearchModal";
 import GlobalImage from "@/components/atoms/GlobalImage";
+import Spinner from "@/components/atoms/Spinner";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 
@@ -31,16 +31,38 @@ export interface MovieSearchResult {
   vote_count: number;
 }
 
-
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
-export default function Navbar() {
 
+export default function Navbar() {
   const [focused, setFocused] = useState(false);
   const [query, setQuery] = useState("");
   const pathname = usePathname();
   const [result, setResult] = useState<MovieSearchResult[]>([]);
   const [liveResult, setLiveResult] = useState<FootballMatch[]>([]);
+  const [imagesLoaded, setImagesLoaded] = useState(false);
+  
   const searchApiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=`;
+
+  // Preload images on component mount
+  useEffect(() => {
+    const preloadImages = async () => {
+      const images = ["/logo.png", "/logo-only.png"];
+      
+      const loadPromises = images.map((src) => {
+        return new Promise((resolve) => {
+          const img = new Image();
+          img.src = src;
+          img.onload = () => resolve(src);
+          img.onerror = () => resolve(src); // Resolve even on error
+        });
+      });
+
+      await Promise.all(loadPromises);
+      setImagesLoaded(true);
+    };
+
+    preloadImages();
+  }, []);
 
   const fetchSuggestions = async (query: string) => {
     const res = await fetch(searchApiUrl + query);
@@ -49,11 +71,7 @@ export default function Navbar() {
     return data.results;
   };
 
-  const {
-    data: liveMatches,
-    error,
-    isLoading,
-  } = useSWR<FootballMatch[]>(
+  const { data: liveMatches, error, isLoading } = useSWR<FootballMatch[]>(
     LIVE,
     fetcher,
     {
@@ -65,19 +83,19 @@ export default function Navbar() {
 
   const searchLiveMatches = (query: string) => {
     if (!liveMatches) return;
-    const res = liveMatches.filter((m) => m.away_team_name.toLowerCase().includes(query.toLowerCase()) || m.home_team_name.toLowerCase().includes(query.toLowerCase()));
-    
+    const res = liveMatches.filter((m) => 
+      m.away_team_name.toLowerCase().includes(query.toLowerCase()) || 
+      m.home_team_name.toLowerCase().includes(query.toLowerCase())
+    );
     setLiveResult(res);
-  }
+  };
 
-
- const allowRoutes = ["/", "/movies", "/videoplayer", "/details"];
+  const allowRoutes = ["/", "/movies", "/videoplayer", "/details"];
 
   const isAllowedPage =
     allowRoutes.includes(pathname) ||
     pathname.startsWith("/details/") ||
     pathname.startsWith("/videoplayer/");
-
 
   useEffect(() => {
     if (!isAllowedPage) {
@@ -94,31 +112,35 @@ export default function Navbar() {
     return () => clearTimeout(timer);
   }, [query, pathname, liveMatches, isLoading]);
 
+  // Determine which logo to show
+  const mobileLogoSrc = focused ? "/logo-only.png" : "/logo.png";
+  const mobileLogoClass = focused 
+    ? "w-[60px] h-[60px] transition-all duration-300 ease-in-out" 
+    : "ml-10 w-[72px] h-[72px] transition-all duration-300 ease-in-out";
 
   return (
-    <nav
+    <div
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
-                rounded-3xl mb-6 fixed top-2 sm:top-6
+                sm:rounded-3xl mb-6 fixed top-0 sm:top-4
                 left-0 right-0
                 bg-black/10
                 backdrop-blur-[30px]
                 flex items-center justify-between
-                border border-[#228EE5]/40
+                sm:border border-[#228EE5]/40
                 hover:shadow-lg shadow-white/15
                 transition-shadow duration-300
                 cursor-pointer
                 sm:min-h-[78px]
-                min-h-[60px]
-                max-h-[60px]
+                min-h-[72px]
+                max-h-[72px]
                 z-1000
                 pl-2
-                mx-1"
+                sm:mx-1"
     >
-      <div className="-my-2 flex items-center justify-between w-full ">
-
+      <div className="-my-2 flex items-center justify-between w-full">
         <div className="flex items-center">
-          <Link href="/"
-                className="hidden sm:block">
+          {/* Desktop Logo - Always visible */}
+          <Link href="/" className="hidden sm:block">
             <GlobalImage
               width={72}
               height={72}
@@ -128,19 +150,27 @@ export default function Navbar() {
               className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px]"
             />
           </Link>
-          <Link href="/"
-                className="block sm:hidden">
-            <GlobalImage
-              key={focused ? "logo-only" : "logo"} 
-              width={72}
-              height={72}
-              unoptimized
-              src={`${focused ? "/logo-only.png" : "/logo.png"}`}
-              alt="App logo"
-              className={`object-contain scale-200 select-none mr-10 ${!focused ? "ml-10 w-[72px] h-[72px]" : "w-[60px] h-[60px]"}`}
-            />
+          
+          {/* Mobile Logo - Changes based on focus */}
+          <Link href="/" className="block sm:hidden">
+            <div className="relative">
+              {!imagesLoaded ? (
+                // Loading placeholder with same dimensions
+                <Spinner className="ml-8"/>
+              ) : (
+                <GlobalImage
+                  width={focused ? 60 : 72}
+                  height={focused ? 60 : 72}
+                  unoptimized
+                  src={mobileLogoSrc}
+                  alt="App logo"
+                  className={`object-contain scale-200 select-none mr-10 ${mobileLogoClass}`}
+                />
+              )}
+            </div>
           </Link>
           
+          {/* Navigation Links */}
           <div className="ml-6 sm:flex space-x-6 hidden">
             {NavbarData.map((item) => {
               const isActive =
@@ -166,7 +196,6 @@ export default function Navbar() {
             })}
           </div>
         </div>
-      
 
         <div className="flex items-center pr-3 relative">
           <div className="flex items-center">
@@ -175,11 +204,11 @@ export default function Navbar() {
               setFocused={setFocused}
               setQuery={setQuery} 
               query={query} 
-              isAllowedPage={isAllowedPage}/>
+              isAllowedPage={isAllowedPage}
+            />
           </div>
         
-          {
-            query.length > 0 &&
+          {query.length > 0 && (
             <SearchModal 
               result={result} 
               liveResult={liveResult} 
@@ -187,11 +216,9 @@ export default function Navbar() {
               isAllowedPage={isAllowedPage} 
               setQuery={setQuery} 
             />
-          }
+          )}
         </div>
       </div>
-    </nav>
-
-    
+    </div>
   );
 }

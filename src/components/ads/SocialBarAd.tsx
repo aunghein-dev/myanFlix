@@ -17,8 +17,29 @@ export default function SocialBarAd({
     "bottom-left" | "bottom-right" | "top-left" | "top-right"
   >("bottom-right");
 
-  // Load the script dynamically
   useEffect(() => {
+
+    if (position === "auto") {
+      const prefersTop = window.innerHeight < 600;
+      const prefersLeft = window.innerWidth < 700;
+
+      const pos =
+        prefersTop && prefersLeft
+          ? "top-left"
+          : prefersTop
+          ? "top-right"
+          : prefersLeft
+          ? "bottom-left"
+          : "bottom-right";
+
+      setAutoPosition(pos);
+    }
+  }, [position]);
+
+  useEffect(() => {
+    // Prevent duplicate script load
+    if (document.querySelector(`script[src="${scriptSrc}"]`)) return;
+
     const script = document.createElement("script");
     script.src = scriptSrc;
     script.async = true;
@@ -26,28 +47,36 @@ export default function SocialBarAd({
     document.body.appendChild(script);
 
     return () => {
-      document.body.removeChild(script);
+      // Optional: don't remove script in case provider needs it
+      // document.body.removeChild(script);
     };
   }, [scriptSrc]);
 
-  // Auto-detect best position
   useEffect(() => {
     if (position !== "auto") return;
 
-    const prefersTop = window.innerHeight < 600; 
-    const prefersLeft = window.innerWidth < 700; 
+    const handleResize = () => {
+      const prefersTop = window.innerHeight < 600;
+      const prefersLeft = window.innerWidth < 700;
 
-    const pos =
-      prefersTop && prefersLeft
-        ? "top-left"
-        : prefersTop
-        ? "top-right"
-        : prefersLeft
-        ? "bottom-left"
-        : "bottom-right";
+      const pos =
+        prefersTop && prefersLeft
+          ? "top-left"
+          : prefersTop
+          ? "top-right"
+          : prefersLeft
+          ? "bottom-left"
+          : "bottom-right";
 
-    setAutoPosition(pos);
+      setAutoPosition(pos);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize();
+
+    return () => window.removeEventListener("resize", handleResize);
   }, [position]);
+
 
   const pos = position === "auto" ? autoPosition : position;
 
@@ -60,9 +89,8 @@ export default function SocialBarAd({
 
   return (
     <div
-      className={`fixed ${positionStyles[pos]} pointer-events-none`}
+      className={`fixed ${positionStyles[pos]}`}
       style={{ zIndex }}
-    >
-    </div>
+    />
   );
 }

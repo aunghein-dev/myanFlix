@@ -41,7 +41,7 @@ interface AdConfig {
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://vivid-wave.com/dlm_F.zZdmGZNbvRZIGMUq/Le/mf9luYZ/UHlNkyPVT_Ys2pOpTrM/x/NbTTYltIN/j_Yo5SMtzpE/1kN/wH",
+  vastUrl: "https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
   adFrequency: 42, 
   skipOffset: 10
 };
@@ -61,12 +61,16 @@ const groupServers = (servers: StreamServer[]): GroupedStreams => {
   return grouped;
 };
 
+// --- VAST Parser Class (UPDATED) ---
 class VASTParser {
   static async parse(vastUrl: string): Promise<{
     mediaUrl: string;
     duration: number;
     skipOffset: number;
     impressions: string[];
+    // NEW: Click tracking fields
+    clickThrough: string | null;
+    clickTracking: string[];
   } | null> {
     try {
       const response = await fetch(vastUrl);
@@ -97,7 +101,24 @@ class VASTParser {
         .map((e) => e.textContent)
         .filter(Boolean) as string[];
 
-      return { mediaUrl, duration, skipOffset, impressions };
+      // --- NEW: Click Tracking ---
+      const clickThroughElem = xmlDoc.querySelector("ClickThrough");
+      const clickThrough = clickThroughElem?.textContent || null;
+
+      const clickTrackingElems = xmlDoc.querySelectorAll("ClickTracking");
+      const clickTracking = Array.from(clickTrackingElems)
+        .map((e) => e.textContent)
+        .filter(Boolean) as string[];
+      // --- END NEW ---
+
+      return { 
+        mediaUrl, 
+        duration, 
+        skipOffset, 
+        impressions,
+        clickThrough, // RETURN NEW FIELD
+        clickTracking // RETURN NEW FIELD
+      };
     } catch (error) {
       console.error("VAST parsing error:", error);
       return null;
@@ -253,6 +274,10 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const [adSkipOffset, setAdSkipOffset] = useState(5);
   const [canSkipAd, setCanSkipAd] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
+  // NEW: VAST Click Tracking States
+  const [adImpressions, setAdImpressions] = useState<string[]>([]);
+  const [adClickThrough, setAdClickThrough] = useState<string | null>(null);
+  const [adClickTracking, setAdClickTracking] = useState<string[]>([]);
 
   const [selectedQuality, setSelectedQuality] = useState(defaultQuality);
   const [selectedServerId, setSelectedServerId] = useState(defaultServer?.id ?? 0);
@@ -266,61 +291,78 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   // --- FIX: Use a ref for prerollPlayed to ensure it only happens once ---
   const prerollPlayedRef = useRef(false);
 
-  const playAd = useCallback(async () => {
-  if (!finalAdConfig.enabled || isAdPlaying) return;
-
-  try {
-    const adData = await VASTParser.parse(finalAdConfig.vastUrl);
-    if (adData) {
-      // Fire impression URLs immediately
-      adData.impressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
-
-      playTimeRef.current = 0;
-      setIsAdPlaying(true);
-      setAdMediaUrl(adData.mediaUrl);
-      setAdDuration(adData.duration);
-      setAdSkipOffset(adData.skipOffset);
-      setCanSkipAd(false);
-      setAdCurrentTime(0);
-      setAdProgress(0);
-
-      // Pause main content
-      if (videoRef.current && isPlaying) {
-        videoRef.current.pause();
-      }
+  const skipAd = useCallback(() => {
+    const adVideo = adVideoRef.current;
+    if (adVideo) {
+      adVideo.pause();
+      // Ensure ad video source is cleared to prevent accidental reloads
+      adVideo.src = "";
+      adVideo.load(); // Call load() to stop fetching the old source
     }
-  } catch (error) {
-    console.error("Failed to load ad:", error);
+
     setIsAdPlaying(false);
-  }
-}, [finalAdConfig, isAdPlaying, isPlaying]);
+    setAdMediaUrl(null); 
+    setAdClickThrough(null); // CLEAR STATE
+    setAdClickTracking([]); // CLEAR STATE
+    setAdImpressions([]); // CLEAR STATE
 
+    // Resume main content
+    if (videoRef.current) {
+        if (isPlaying) { 
+          videoRef.current.play().catch(console.error);
+        }
+    }
+  }, [isPlaying]); 
 
-  // Skip ad
-  const skipAd = useCallback(() => {
-    // NEW: Ensure the adVideoRef current element exists before operating
-    const adVideo = adVideoRef.current;
-    if (adVideo) {
-      adVideo.pause();
-      // Ensure ad video source is cleared to prevent accidental reloads
-      adVideo.src = "";
-      adVideo.load(); // Call load() to stop fetching the old source
-    }
+  // NEW: Ad Click Handler
+  const handleAdClick = useCallback(() => {
+    const adVideo = adVideoRef.current;
+    if (!adVideo || !adClickThrough) return;
+    
+    adVideo.pause();
+    
+    // 1. Fire Click Tracking URLs
+    adClickTracking.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
+    
+    // 2. Open the ClickThrough URL
+    window.open(adClickThrough, '_blank');
+    
+    // 3. Skip the ad and resume content
+    skipAd();
 
-    // Only set the flag to false *after* the video element is cleaned up
-    setIsAdPlaying(false);
-    setAdMediaUrl(null); // This is what triggers the removal from the DOM
+  }, [adClickThrough, adClickTracking, skipAd]);
 
-    // Resume main content
-    if (videoRef.current) {
-        // Attempt to play if it was playing before the ad
-        if (isPlaying) { 
-             videoRef.current.play().catch(console.error);
-        } else if (videoRef.current.paused) {
-             // If video was paused before the ad, keep it paused, but ensure it's loaded
-        }
-    }
-  }, [isPlaying]); // No change to dependencies
+  const playAd = useCallback(async () => {
+    if (!finalAdConfig.enabled || isAdPlaying) return;
+
+    try {
+      const adData = await VASTParser.parse(finalAdConfig.vastUrl);
+      if (adData) {
+        // NEW: Store impression and click tracking data
+        setAdImpressions(adData.impressions);
+        setAdClickThrough(adData.clickThrough);
+        setAdClickTracking(adData.clickTracking);
+
+        playTimeRef.current = 0;
+        setIsAdPlaying(true);
+        setAdMediaUrl(adData.mediaUrl);
+        setAdDuration(adData.duration);
+        setAdSkipOffset(adData.skipOffset);
+        setCanSkipAd(false);
+        setAdCurrentTime(0);
+        setAdProgress(0);
+
+        // Pause main content
+        if (videoRef.current && isPlaying) {
+          videoRef.current.pause();
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load ad:", error);
+      setIsAdPlaying(false);
+    }
+  }, [finalAdConfig, isAdPlaying, isPlaying]);
+
 
   // Handle ad time update
   const handleAdTimeUpdate = useCallback(() => {
@@ -338,6 +380,14 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
       }
     }
   }, [adDuration, adSkipOffset, canSkipAd, skipAd]);
+
+  // NEW: Handle ad video playing (to fire Impression)
+  const handleAdPlaying = useCallback(() => {
+    // Fire impressions when the ad actually starts playing (best practice)
+    adImpressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
+    // Clear the impressions state once fired to prevent re-firing on pause/play
+    setAdImpressions([]); 
+  }, [adImpressions]);
 
 // Schedule ads based on play time (Mid-roll)
   useEffect(() => {
@@ -358,13 +408,12 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd]); // Added adFrequency dependency
+  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd]);
 
   // --- FIX: Corrected Pre-roll Ad Logic ---
   useEffect(() => {
-    // Only run this effect once on mount. The dependencies are just for enabling it.
+    // Only run this effect once on mount.
     if (finalAdConfig.enabled && !prerollPlayedRef.current) {
-        // We only check for activeStreamUrl once to start the process
         if (activeStreamUrl) {
             prerollPlayedRef.current = true; // Mark pre-roll as played immediately
             playAd(); // Play the ad
@@ -372,9 +421,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }
   }, [activeStreamUrl, finalAdConfig.enabled, playAd]);
   // --- END FIX ---
-  
-  // Note: The original 'Reset play time when not playing' effect was removed as it was redundant with the mid-roll effect's cleanup.
-
   
   useEffect(() => {
     const video = videoRef.current;
@@ -594,7 +640,6 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
         }
         
         // FIX: Manually pause and clear source before calling skipAd to clean up
-        // This ensures the video element's state is quiescent before unmounting.
         adVideo.pause();
         adVideo.src = "";
         adVideo.load();
@@ -650,9 +695,12 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
         muted={isMuted} 
       />
 
-      {/* Ad Overlay */}
+      {/* Ad Overlay (UPDATED for Click Tracking) */}
       {isAdPlaying && adMediaUrl && (
-        <div className="absolute inset-0 z-20 bg-black flex items-center justify-center">
+        <div 
+            className="absolute inset-0 z-20 bg-black flex items-center justify-center cursor-pointer"
+            onClick={handleAdClick} // <<< BIND CLICK HANDLER
+        >
           <div className="relative w-full h-full">
             <video
               ref={adVideoRef}
@@ -660,26 +708,24 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
               autoPlay 
               onTimeUpdate={handleAdTimeUpdate}
               onEnded={skipAd}
-              className="w-full h-full object-contain"
+              onPlaying={handleAdPlaying} // <<< FIRE IMPRESSION ON PLAYING
+              onClick={(e) => e.stopPropagation()} // Prevent video click from triggering ad click if native controls were present
+              className="w-full h-full object-contain pointer-events-none" // <<< pointer-events-none ensures the wrapper div handles the click
               playsInline 
-              // IMPORTANT: The ad video must be able to respect volume/mute controls 
-              // from the main component state. If it is permanently muted here, 
-              // the user cannot unmute it. We let the playAdVideo function handle 
-              // the initial muted start for autoplay.
               muted={false} 
             />
             
             {/* Ad Controls */}
-            <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-              <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-3 py-1">
+            <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
+              <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-3 py-1 pointer-events-auto">
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-white text-sm font-medium">Advertisement</span>
               </div>
               
               {canSkipAd && (
                 <button
-                  onClick={skipAd}
-                  className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors"
+                  onClick={(e) => {e.stopPropagation(); skipAd();}} // Prevent ad click handler from being triggered
+                  className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors pointer-events-auto"
                 >
                   <span>Skip Ad</span>
                   <X size={16} />

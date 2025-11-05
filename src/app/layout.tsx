@@ -43,11 +43,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta
-          name="3d8d6d5c630cf7bff57658c89757a9d557fabb25"
-          content="3d8d6d5c630cf7bff57658c89757a9d557fabb25"
-        />
-        <meta name="referrer" content="no-referrer-when-downgrade" />
       </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <Container>{children}</Container>

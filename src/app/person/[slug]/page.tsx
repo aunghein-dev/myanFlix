@@ -10,7 +10,6 @@ import { Person } from "@/components/layout/LineCharacterList";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import useSWR from "swr";
 import Spinner from "@/components/atoms/Spinner";
-import BannerAd from "@/components/ads/BannerAd";
 
 
 interface PersonDetails {
@@ -108,7 +107,6 @@ export default function PersonPage() {
       ref={scrollRef}
       className="mx-auto max-w-6xl sm:max-w-2xl md:max-w-3xl lg:max-w-5xl px-4 sm:px-2 mt-30"
     >
-      <BannerAd keyId="d1da9187f471cbd87cbb4f8867a44278" href={`/api/smart/adsterra`}/>
       {isPersonLoading ? (
         <div className="flex items-center justify-center min-h-[196px]">
          <Spinner/>

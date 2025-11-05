@@ -42,7 +42,7 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-    "https://vivid-wave.com/dlm_F.zZdmGZNbvRZIGMUq/Le/mf9luYZ/UHlNkyPVT_Ys2pOpTrM/x/NbTTYltIN/j_Yo5SMtzpE/1kN/wH",
+"https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
   adFrequency: 50,
   skipOffset: 10,
   preRoll: true,
@@ -50,13 +50,14 @@ const defaultAdConfig: AdConfig = {
   postRoll: true,
 };
 
-// --- NEW VASTParser ---
+// --- VASTParser (UPDATED for ClickTracking) ---
 class VASTParser {
   static async parse(vastUrl: string, maxWrappers = 5): Promise<{
     mediaUrl: string;
     duration: number;
     skipOffset: number;
     impressions: string[];
+    // NOTE: 'clickThrough' is added to trackingEvents for simplicity
     trackingEvents: { [event: string]: string[] };
   } | null> {
     if (maxWrappers <= 0) {
@@ -67,6 +68,7 @@ class VASTParser {
     try {
       const response = await fetch(vastUrl);
       const xmlText = await response.text();
+      
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
@@ -79,7 +81,7 @@ class VASTParser {
         if (!wrappedData) return null; // Failed down the line
 
         // Collect impressions & tracking from THIS wrapper
-        const impressions = this.getTrackingEvents(xmlDoc, "Impression");
+        const impressions = this.getTrackingUrls(xmlDoc, "Impression");
         const trackingEvents = this.getLinearTrackingEvents(xmlDoc);
 
         // Merge with data from the final inline ad
@@ -93,14 +95,15 @@ class VASTParser {
       // --- This is an Inline response ---
       
       // Media file
-      // Prioritize MP4 files
+      // Prioritize webm (better compatibility in some cases) then progressive MP4
       const mediaFiles = Array.from(xmlDoc.querySelectorAll("MediaFile"));
-      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/mp4');
-      const mediaFile = mp4Media || mediaFiles.find(mf => mf.getAttribute('delivery') === 'progressive');
+      const webmMedia = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm');
+      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/mp4' && mf.getAttribute('delivery') === 'progressive');
+      const mediaFile = webmMedia || mp4Media || mediaFiles[0];
       const mediaUrl = mediaFile?.textContent?.trim();
 
       if (!mediaUrl) {
-         console.error("No compatible MediaFile found in VAST inline response.");
+         console.warn("No compatible MediaFile found in VAST inline response.");
          return null;
       }
 
@@ -115,10 +118,26 @@ class VASTParser {
       const skipOffset = skipOffsetRaw ? this.parseDuration(skipOffsetRaw) : 5;
 
       // Impressions
-      const impressions = this.getTrackingEvents(xmlDoc, "Impression");
+      const impressions = this.getTrackingUrls(xmlDoc, "Impression");
 
-      // Tracking Events
+      // Tracking Events (includes click tracking and click through)
       const trackingEvents = this.getLinearTrackingEvents(xmlDoc);
+      
+      // Add ClickThrough and ClickTracking to the general tracking events
+      const clickThroughElem = xmlDoc.querySelector("ClickThrough");
+      const clickThrough = clickThroughElem?.textContent?.trim();
+      if (clickThrough) {
+        trackingEvents['clickThrough'] = [clickThrough];
+      }
+      
+      const clickTrackingElems = xmlDoc.querySelectorAll("ClickTracking");
+      const clickTrackingUrls = Array.from(clickTrackingElems)
+        .map((e) => e.textContent?.trim())
+        .filter(Boolean) as string[];
+        
+      if (clickTrackingUrls.length > 0) {
+        trackingEvents['clickTracking'] = clickTrackingUrls;
+      }
 
       return { mediaUrl, duration, skipOffset, impressions, trackingEvents };
     } catch (error) {
@@ -140,14 +159,14 @@ class VASTParser {
     }
     // Handle percentage-based skipoffset (e.g., "15%") - treat as 15s for simplicity
     if (duration.includes("%")) {
-         return parseInt(duration) || 5; 
+         return parseFloat(duration.replace('%', '')) || 5; 
     }
     return parseFloat(duration) || 30; // Use parseFloat
   }
 
-  // Helper to get <Impression> tags
-  static getTrackingEvents(xmlDoc: Document, eventName: string): string[] {
-    return Array.from(xmlDoc.querySelectorAll(eventName))
+  // Helper to get <Impression> or other URL tags
+  static getTrackingUrls(xmlDoc: Document, tagName: string): string[] {
+    return Array.from(xmlDoc.querySelectorAll(tagName))
       .map((e) => e.textContent?.trim())
       .filter(Boolean) as string[];
   }
@@ -216,7 +235,9 @@ export default function ProfessionalVideoPlayer() {
   const [canSkipAd, setCanSkipAd] = useState(false);
   const [adProgress, setAdProgress] = useState(0);
   const [adConfig] = useState<AdConfig>(defaultAdConfig);
-
+  // NEW: Store all VAST tracking events, including ClickTracking and ClickThrough
+  const [adTrackingEvents, setAdTrackingEvents] = useState<{ [event: string]: string[] }>({});
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const adVideoRef = useRef<HTMLVideoElement>(null);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
@@ -300,6 +321,14 @@ export default function ProfessionalVideoPlayer() {
     }
   }, [slug, router]);
 
+  // NEW: Helper function to fire VAST tracking URLs
+  const fireTrackingUrls = useCallback((event: string) => {
+      const urls = adTrackingEvents[event];
+      if (urls && urls.length > 0) {
+          urls.forEach(url => fetch(url, { method: "GET", mode: "no-cors" }));
+      }
+  }, [adTrackingEvents]);
+
   // Load and play ad
   const playAd = useCallback(
     async (adType: "preRoll" | "midRoll" | "postRoll" = "midRoll") => {
@@ -308,7 +337,9 @@ export default function ProfessionalVideoPlayer() {
       try {
         const adData = await VASTParser.parse(adConfig.vastUrl);
         if (adData) {
-          adData.impressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
+          // IMPORTANT FIX: DO NOT fire impressions here. Fire on 'playing' event.
+          // adData.impressions.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
+          
           setIsAdPlaying(true);
           setAdMediaUrl(adData.mediaUrl);
           setAdDuration(adData.duration);
@@ -316,6 +347,13 @@ export default function ProfessionalVideoPlayer() {
           setCanSkipAd(false);
           setAdCurrentTime(0);
           setAdProgress(0);
+          
+          // Store all tracking data (including impressions)
+          setAdTrackingEvents({ 
+            ...adData.trackingEvents, 
+            'impression': adData.impressions // Use a standard key for impressions
+          });
+
 
           // Pause main content
           if (videoRef.current && isPlaying) {
@@ -343,34 +381,119 @@ export default function ProfessionalVideoPlayer() {
 
   // Skip ad
   const skipAd = useCallback(() => {
+    // Fire Skip tracking event
+    fireTrackingUrls('skip');
+    
     if (adVideoRef.current) {
       adVideoRef.current.pause();
+      adVideoRef.current.src = ""; // Clear source
+      adVideoRef.current.load(); // Stop fetching
     }
+    
+    // Clear all ad states
     setIsAdPlaying(false);
     setAdMediaUrl(null);
-
+    setAdTrackingEvents({});
+    
     // Resume main content if it was playing
     if (videoRef.current && isPlaying) {
       videoRef.current.play().catch(console.error);
     }
-  }, [isPlaying]);
+  }, [isPlaying, fireTrackingUrls]);
+  
+  // NEW: Ad Click Handler
+  const handleAdClick = useCallback(() => {
+    const clickThroughUrl = adTrackingEvents['clickThrough']?.[0];
+    if (!adVideoRef.current || !clickThroughUrl) return;
+    
+    adVideoRef.current.pause();
+    
+    // 1. Fire Click Tracking URLs (Crucial for fixing "n/a")
+    fireTrackingUrls('clickTracking');
+    
+    // 2. Open the ClickThrough URL
+    window.open(clickThroughUrl, '_blank');
+    
+    // 3. Skip the ad and resume content
+    skipAd();
+
+  }, [adTrackingEvents, fireTrackingUrls, skipAd]);
+
+  // NEW: Ad Play/Impression Handler
+  const handleAdPlaying = useCallback(() => {
+    // Fire Impression
+    fireTrackingUrls('impression');
+    // Fire Start event
+    fireTrackingUrls('start');
+  }, [fireTrackingUrls]);
+
 
   // Handle ad time update
   const handleAdTimeUpdate = useCallback(() => {
     if (adVideoRef.current) {
       const currentTime = adVideoRef.current.currentTime;
       setAdCurrentTime(currentTime);
-      setAdProgress((currentTime / adDuration) * 100);
+      
+      const duration = adDuration > 0 ? adDuration : 30; // Use 30s as fallback
+      setAdProgress((currentTime / duration) * 100);
 
       if (currentTime >= adSkipOffset && !canSkipAd) {
         setCanSkipAd(true);
       }
 
-      if (currentTime >= adDuration) {
+      // Fire quartiles
+      if (currentTime >= duration * 0.25 && adTrackingEvents['firstQuartile']) {
+          fireTrackingUrls('firstQuartile');
+          delete adTrackingEvents['firstQuartile']; // Fire only once
+      }
+      if (currentTime >= duration * 0.5 && adTrackingEvents['midpoint']) {
+          fireTrackingUrls('midpoint');
+          delete adTrackingEvents['midpoint'];
+      }
+      if (currentTime >= duration * 0.75 && adTrackingEvents['thirdQuartile']) {
+          fireTrackingUrls('thirdQuartile');
+          delete adTrackingEvents['thirdQuartile'];
+      }
+
+      if (currentTime >= duration) {
+        // VAST 'complete' event is usually fired on 'ended', but skipAd handles it.
+        // We ensure a 'complete' event is fired here if the browser ends it first.
+        fireTrackingUrls('complete');
         skipAd();
       }
     }
-  }, [adDuration, adSkipOffset, canSkipAd, skipAd]);
+  }, [adDuration, adSkipOffset, canSkipAd, skipAd, adTrackingEvents, fireTrackingUrls]);
+
+  // Play ad video after mediaUrl is set
+  useEffect(() => {
+    const adVideo = adVideoRef.current;
+    if (isAdPlaying && adMediaUrl && adVideo) {
+        try {
+            // VAST standard suggests starting muted if pre-roll
+            adVideo.muted = true;
+            adVideo.volume = 1;
+            
+            // Set source and load before playing
+            adVideo.src = adMediaUrl;
+            adVideo.load();
+            
+            // We use the onPlaying event to fire impressions
+            adVideo.play().catch(error => {
+                console.error("Ad autoplay failed:", error);
+                // Clean up and skip on failure
+                adVideo.pause();
+                adVideo.src = "";
+                adVideo.load();
+                skipAd();
+            });
+        } catch (error) {
+            console.error("Ad video setup failed:", error);
+            skipAd();
+        }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdPlaying, adMediaUrl]);
+
 
   // Schedule mid-roll ads based on play time
   useEffect(() => {
@@ -681,7 +804,7 @@ export default function ProfessionalVideoPlayer() {
     return () => {
       if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
     };
-    // **FIX 1:** Removed `subtitleBlobUrl` from dependency array to prevent loop
+    // FIX 1: Removed `subtitleBlobUrl` from dependency array to prevent loop
   }, [selectedTorrent, selectedSubtitle, subtitleOffset, getSubtitleUrl]);
 
   useEffect(() => {
@@ -834,9 +957,12 @@ export default function ProfessionalVideoPlayer() {
         }
         style={{ aspectRatio: "16/9", maxWidth: "1600px" }}
       >
-        {/* Ad Overlay */}
+        {/* Ad Overlay (UPDATED for Click Tracking) */}
         {isAdPlaying && adMediaUrl && (
-          <div className="absolute inset-0 z-50 bg-black flex items-center justify-center">
+          <div 
+              className="absolute inset-0 z-50 bg-black flex items-center justify-center cursor-pointer"
+              onClick={handleAdClick} // <<< NEW: BIND CLICK HANDLER
+          >
             <div className="relative w-full h-full">
               <video
                 ref={adVideoRef}
@@ -845,14 +971,16 @@ export default function ProfessionalVideoPlayer() {
                 muted={false}
                 onTimeUpdate={handleAdTimeUpdate}
                 onEnded={skipAd}
-                className="w-full h-full object-contain"
+                onPlaying={handleAdPlaying} // <<< NEW: FIRE IMPRESSION AND START EVENT
+                onClick={(e) => e.stopPropagation()} // Prevent video click from triggering the wrapper click
+                className="w-full h-full object-contain pointer-events-none" // <<< pointer-events-none ensures wrapper handles click
                 playsInline
                 style={{ aspectRatio: "16/9" }}
               />
 
               {/* Ad Controls */}
-              <div className="absolute top-4 left-4 right-4 flex justify-between items-center">
-                <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-2 py-1">
+              <div className="absolute top-4 left-4 right-4 flex justify-between items-center pointer-events-none">
+                <div className="flex items-center space-x-2 bg-black/70 rounded-lg px-2 py-1 pointer-events-auto">
                   <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                   <span className="text-white text-sm font-medium">
                     Advertisement
@@ -861,10 +989,10 @@ export default function ProfessionalVideoPlayer() {
 
                 {canSkipAd && (
                   <button
-                    onClick={skipAd}
-                    className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors"
+                    onClick={(e) => {e.stopPropagation(); skipAd();}} // Stop propagation to prevent ad click handler from triggering skipAd twice
+                    className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors pointer-events-auto"
                   >
-                    <span>Skip Ad</span>
+                    <span>Skip Ad (S)</span>
                     <X size={14} />
                   </button>
                 )}
@@ -915,7 +1043,6 @@ export default function ProfessionalVideoPlayer() {
         )}
 
         {/* Main Video */}
-        {/* **FIX 2:** Removed the `controls` prop to prevent conflicts with custom UI */}
         <video
           ref={videoRef}
           className="w-full h-full object-contain"
@@ -928,7 +1055,7 @@ export default function ProfessionalVideoPlayer() {
           onProgress={handleProgress}
           onClick={isAdPlaying ? undefined : togglePlay}
           crossOrigin="anonymous"
-          controls
+          controls // Keep controls for easy debugging, but consider removing for clean custom UI
           autoPlay
           style={{ aspectRatio: "16/9" }}
         >

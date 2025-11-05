@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 
 interface GlobalImageProps {
@@ -22,16 +22,22 @@ export default function GlobalImage({
   fill = false,
   unoptimized = true,
 }: GlobalImageProps) {
-  const [retrySrc, setRetrySrc] = useState(src);
+  const [currentSrc, setCurrentSrc] = useState(src);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 2;
+
+  // Reset when src prop changes
+  useEffect(() => {
+    setCurrentSrc(src);
+    setRetryCount(0);
+  }, [src]);
 
   const handleError = () => {
     if (retryCount < MAX_RETRIES) {
       setRetryCount((c) => c + 1);
-      setRetrySrc(`${src}?retry=${Date.now()}`);
+      setCurrentSrc(`${src}?retry=${Date.now()}`);
     } else {
-      setRetrySrc("/no-image.png");
+      setCurrentSrc("/no-image.png");
     }
   };
 
@@ -39,7 +45,7 @@ export default function GlobalImage({
     <Image
       fill
       unoptimized={unoptimized}
-      src={retrySrc}
+      src={currentSrc}
       alt={alt}
       onError={handleError}
       className={className}
@@ -49,7 +55,7 @@ export default function GlobalImage({
       width={width}
       height={height}
       unoptimized={unoptimized}
-      src={retrySrc}
+      src={currentSrc}
       alt={alt}
       onError={handleError}
       className={className}

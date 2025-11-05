@@ -18,20 +18,20 @@ export interface MovieDetailsAtPlayerProps {
 
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
- const handleDownloadClick = () => {
 
-  const urls = ["/api/smart/hilltop", "/api/smart/adsterra"];
+  const handleDownloadClick = () => {
+
+    const urls = [
+      "https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57"
+    ];
 
     urls.forEach((url) => {
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_blank";       
-      a.rel = "noopener noreferrer"; 
-      a.click();
+      window.open(url, "_blank", "noopener,noreferrer");
     });
 
     onDownload?.();
   };
+
 
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;

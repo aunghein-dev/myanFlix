@@ -7,34 +7,48 @@ interface SearchProps {
   setQuery: (q: string) => void;
   isAllowedPage: boolean;
   focused: boolean;
-  setFocused: React.Dispatch<React.SetStateAction<boolean>>
+  setFocused: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const Search = (props: SearchProps) => {
-  
   const inputRef = useRef<HTMLInputElement>(null);
   const { query, setQuery, isAllowedPage, focused, setFocused } = props;
   const shouldExpand = focused || query.length > 0;
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event from bubbling to parent
+    setQuery("");
+    setFocused(false);
+    // Also blur the input to ensure it loses focus
+    inputRef.current?.blur();
+  };
+
+  const handleContainerClick = () => {
+    // Only focus if we're not clicking the clear button
+    inputRef.current?.focus();
+  };
 
   return (
     <div
       className={`
         flex items-center rounded-full
         transition-all duration-400 ease-in-out
-         overflow-hidden
-         justify-center
-        ${shouldExpand ? "w-53 sm:w-[260px] px-1.5 h-10 border border-[#228EE5]" : "w-10 h-10 justify-center "}
+        overflow-hidden
+        justify-center
+        ${
+          shouldExpand
+            ? "w-60 sm:w-[260px] px-1.5 h-10 border border-[#228EE5]"
+            : "w-10 h-10 justify-center "
+        }
         ${focused ? "border-[#228EE5] shadow-sm " : "border-[#228EE5]"}
         cursor-pointer
       `}
-      onClick={() => inputRef.current?.focus()}
+      onClick={handleContainerClick}
     >
-
       <IoSearchOutline
         className={`transition-colors duration-300 text-2xl min-w-5
         ${shouldExpand ? "text-[#228EE5] ml-1" : "text-white/75"}`}
       />
-
 
       <input
         ref={inputRef}
@@ -55,10 +69,9 @@ const Search = (props: SearchProps) => {
       {shouldExpand && query.length > 0 && (
         <RxCross2
           className="text-2xl text-white/75 cursor-pointer mr-1"
-          onClick={() => setQuery("")}
+          onClick={handleClear}
         />
       )}
-
     </div>
   );
 };
