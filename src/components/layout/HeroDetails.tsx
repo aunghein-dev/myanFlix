@@ -8,8 +8,8 @@ export default function HeroDetails({ activeMovie }: { activeMovie: Movie }) {
   return (
     <>
       {activeMovie && <div>
-        <h1 className="text-4xl font-bold mb-2 text-white line-clamp-1">{activeMovie.title}</h1>
-        <p className="max-w-lg text-white leading-tight mb-2 line-clamp-2">
+        <h1 className="font-oswald text-4xl font-bold mb-2 text-white line-clamp-1">{activeMovie.title}</h1>
+        <p className="font-inter max-w-lg text-white/75 leading-snug mb-2 line-clamp-3 text-sm sm:text-md">
           {activeMovie.overview}
         </p>
 

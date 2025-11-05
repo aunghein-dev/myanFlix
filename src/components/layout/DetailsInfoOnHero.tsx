@@ -9,10 +9,10 @@ import Link from "next/link";
 
 export default function DetailsInfoOnHero({ selectedMovie }: { selectedMovie: MovieDetails }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full ">
+    <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full z-50">
       <div className="flex-1 lg:pr-8">
         <div className="">
-          <h1 className="text-4xl text-white font-bold">{selectedMovie?.title}</h1>
+          <h1 className="font-oswald text-4xl text-white font-bold">{selectedMovie?.title}</h1>
           <div className="text-white mt-2">
             <span>{numberToHourMinute(selectedMovie?.runtime || 0)}</span>
             {" - "}

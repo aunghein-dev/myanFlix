@@ -56,8 +56,8 @@ export default function LineMovieList({
   return (
     <div className="w-full flex-1 relative">
       {title && (
-        <div className="flex justify-between items-center py-3">
-          <h1 className="text-white sm:text-2xl text-lg font-semibold">{title}</h1>
+        <div className="flex justify-between items-center py-3 px-1 sm:px-0">
+          <h1 className="font-oswald text-white sm:text-2xl text-lg font-semibold">{title}</h1>
 
           {link && (
             <Link

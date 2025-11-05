@@ -47,7 +47,7 @@ export default function CharCardListAtDetail({
 
   return (
     <div className="relative">
-      <h2 className="text-2xl font-bold text-white mt-8">
+      <h2 className="font-oswald text-2xl font-bold text-white mt-8">
         {!isMovieLoading && "Characters"}
       </h2>
 
@@ -69,9 +69,9 @@ export default function CharCardListAtDetail({
                 alt={member.name}
                 className="w-24 h-24 rounded-full object-cover transition-transform duration-200"
               />
-              <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-colors duration-150 ease-out pointer-events-none" />
-              <p className="text-white text-sm mt-2 line-clamp-1">{member.name}</p>
-              <p className="text-gray-400 text-xs line-clamp-1">
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150 ease-out pointer-events-none" />
+              <p className="text-white/80 text-xs sm:text-sm mt-2 line-clamp-1">{member.name}</p>
+              <p className="text-white/40 text-xs line-clamp-1">
                 {member.character}
               </p>
             </Link>

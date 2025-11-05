@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google"; 
+import { Inter, Oswald } from "next/font/google"; 
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
+import SocialBarAd from "@/components/ads/SocialBarAd";
 
 export const metadata: Metadata = {
   title: "myanFlix — Watch Free Movies & Live Football Streaming in HD",
@@ -23,16 +24,19 @@ export const metadata: Metadata = {
   },
 };
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+
+const oswald = Oswald({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-oswald',
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export default function RootLayout({
   children,
@@ -44,7 +48,8 @@ export default function RootLayout({
     <html lang="en">
       <head>
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${oswald.variable} ${inter.variable} antialiased`}>
+        <SocialBarAd position="auto" zIndex={9000} />
         <Container>{children}</Container>
 
         <Script

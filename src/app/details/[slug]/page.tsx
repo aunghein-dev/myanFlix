@@ -61,14 +61,16 @@ export default function Details() {
             backgroundImage: `url(https://image.tmdb.org/t/p/original${selectedMovie?.backdrop_path})`,
           }}
         />
-        <div className={`absolute left-0 top-0 w-[60px] h-full z-[10] ${isLoading ? "bg-transparent" : "bg-gradient-to-r"} from-black/70 to-transparent`}/>
-        <div className={`absolute right-0 top-0 w-[60px] h-full z-[10] ${isLoading ? "bg-transparent" : "bg-gradient-to-l"} from-black/70 to-transparent`}/>
-        <div className={`absolute inset-0 ${isLoading ? "bg-transparent" : "bg-gradient-to-r"} from-black/80 via-black/40 to-transparent`}/>
+        <div className={`absolute left-0 top-0 w-[60px] h-full z-[10] ${isLoading ? "bg-transparent" : "bg-gradient-to-r"} from-black/10 to-transparent`}/>
+        <div className={`absolute right-0 top-0 w-[60px] h-full z-[10] ${isLoading ? "bg-transparent" : "bg-gradient-to-l"} from-black/10 to-transparent`}/>
+        
+        <div className={`absolute inset-0 ${isLoading ? "bg-transparent" : "bg-gradient-to-r"} from-black/20 via-black/20 to-transparent`}/>
         
         <div className="relative h-full flex items-end z-20">
           <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-4 sm:px-2 h-full w-full flex flex-col justify-end pb-8">
           {selectedMovie &&  <DetailsInfoOnHero selectedMovie={selectedMovie}/>}
          </div>
+         <div className="absolute inset-0 bg-gradient-to-t from-background via-black/5 to-transparent"></div>
         </div>
       </div>
 

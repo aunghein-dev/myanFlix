@@ -105,15 +105,15 @@ export default function LivePage() {
   return (
     <section className="relative">
       {picksLoading ? <Spinner className="min-h-[600px]"/> : (
-        <div className="relative h-[600px] select-none overflow-hidden">
+        <div className="relative h-[600px] select-none overflow-hidden ">
           <div
             className="absolute inset-0 bg-cover bg-bottom transition-all duration-500"
             style={{ backgroundImage: `url(/fbhero.avif)` }}
           />
-
-          <div className="absolute left-0 top-0 w-[60px] h-full z-10 bg-gradient-to-r from-black/60 to-transparent" />
-          <div className="absolute right-0 top-0 w-[60px] h-full z-10 bg-gradient-to-l from-black/60 to-transparent" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
+          
+          <div className="absolute left-0 top-0 w-[60px] h-full z-10 bg-gradient-to-r from-background/10 to-transparent" />
+          <div className="absolute right-0 top-0 w-[60px] h-full z-10 bg-gradient-to-l from-background/10 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/10 to-transparent" />
 
 
           <div className="relative h-full flex items-end">

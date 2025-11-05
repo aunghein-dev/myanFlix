@@ -16,9 +16,9 @@ export default function SearchModal(props : Props) {
   const { result, liveResult, isAllowedPage, setQuery } = props;
   return (
     <>
-      <div className="absolute -left-[130px] sm:-left-40 top-13 sm:top-16 right-0 bg-gray-800/90 min-h-20
+      <div className="absolute -left-[130px] sm:-left-47 top-13 sm:top-15 right-0 bg-background min-h-20
                             z-50 hover:shadow-lg shadow-white/15
-                            rounded-xl flex flex-col overflow-y-scroll max-h-[400px]">
+                            rounded-xl flex flex-col overflow-y-scroll max-h-[400px] sm:max-h-[500px]">
         {
           result.length === 0 && liveResult.length === 0 && isAllowedPage ? (
             <p className="text-white/30 text-sm p-2 flex items-center justify-center mt-2">No results found</p>

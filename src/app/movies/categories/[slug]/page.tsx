@@ -250,8 +250,8 @@ export default function CategoryPage() {
   };
 
   return (
-    <section className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 sm:mt-30 mt-24 mb-4">
-      <h1 className="sm:text-xl text-lg font-semibold text-white mb-4 capitalize tracking-wide">
+    <section className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 sm:mt-30 mt-20 mb-4">
+      <h1 className="font-oswald sm:text-xl text-lg font-semibold text-white mb-4 capitalize tracking-wide pl-1 sm:pl-0">
         {formatHeader()} Movies
       </h1>
 

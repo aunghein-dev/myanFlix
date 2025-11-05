@@ -9,19 +9,21 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-oswald: var(--font-oswald);
+  --font-inter: var(--font-inter);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: rgb(12, 18, 30);
     --foreground: #ededed;
   }
 }
 
 html {
   overflow-y: scroll;
+  font-family: var(--font-inter);
+  background-color: var(--background);
 }
 
 body {

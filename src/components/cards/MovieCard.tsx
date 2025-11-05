@@ -33,7 +33,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
       </div>
 
       {/* Title */}
-      <h3 className="text-white/80 text-xs line-clamp-2 leading-snug mt-2 select-none">
+      <h3 className="text-white/60 text-xs sm:text-sm line-clamp-2 leading-snug mt-2 select-none">
         {movie.title}
       </h3>
     </div>

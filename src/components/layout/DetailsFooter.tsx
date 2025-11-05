@@ -4,6 +4,8 @@ import MovieCard from "../cards/MovieCard";
 import Link from "next/link";
 import CharCardListAtDetail from "../cards/CharCardListAtDetail";
 import GlobalImage from "../atoms/GlobalImage";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Props {
   isMovieLoading: boolean;
@@ -16,6 +18,36 @@ export default function DetailsFooter({
   selectedMovie,
   suggestedMovies,
 }: Props) {
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [showLeft, setShowLeft] = useState(false);
+  const [showRight, setShowRight] = useState(false);
+
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setShowLeft(scrollLeft > 0);
+    setShowRight(scrollLeft + clientWidth < scrollWidth - 5);
+  };
+
+  const scroll = (dir: "left" | "right") => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const scrollAmount = el.clientWidth * 0.95;
+    const target =
+      dir === "left" ? el.scrollLeft - scrollAmount : el.scrollLeft + scrollAmount;
+    el.scrollTo({ left: target, behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    handleScroll();
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener("scroll", handleScroll);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, [suggestedMovies]);
+
   
   return (
     <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-4 sm:px-2">
@@ -40,12 +72,12 @@ export default function DetailsFooter({
         )}
       </div>
       <div>
-        <h1 className="text-3xl font-bold mt-6 mb-2 text-white">{!isMovieLoading && "about "}{selectedMovie?.title}</h1>
-        <p className="text-white text-sm">{selectedMovie?.overview}</p>
+        <h1 className="text-3xl font-bold mt-6 mb-2 text-white">{!isMovieLoading && "about "}<span className="font-oswald">{selectedMovie?.title}</span></h1>
+        <p className="text-white/70 text-sm sm:text-md">{selectedMovie?.overview}</p>
       </div>
 
       <div>
-        <h2 className="text-2xl font-bold text-white mt-8">{!isMovieLoading && "Genres"}</h2>
+        <h2 className="font-oswald text-2xl font-bold text-white mt-8">{!isMovieLoading && "Genres"}</h2>
         {selectedMovie?.genres.map((genre) => (
           <span
             key={genre.id}
@@ -61,7 +93,7 @@ export default function DetailsFooter({
       <CharCardListAtDetail selectedMovie={selectedMovie} isMovieLoading={isMovieLoading}/>
 
       <div>
-        <h2 className="text-2xl font-bold text-white mt-8">{!isMovieLoading && "Director"}</h2>
+        <h2 className="font-oswald text-2xl font-bold text-white mt-8">{!isMovieLoading && "Director"}</h2>
         {
           selectedMovie?.credits?.crew?.length ? (
             <div className="flex gap-4 mt-4 overflow-x-auto scrollbar-hide">
@@ -79,9 +111,9 @@ export default function DetailsFooter({
                       alt={director.name}
                       className="w-24 h-24 rounded-full object-cover transition-transform duration-200"
                     />
-                    <div className="absolute inset-0 rounded-full bg-black/0 group-hover:bg-black/20 transition-colors duration-150 ease-out pointer-events-none"/>
-                    <p className="text-white text-sm mt-2 line-clamp-1">{director.name}</p>
-                    <p className="text-gray-400 text-xs line-clamp-1">{director.job}</p>
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-150 ease-out pointer-events-none"/>
+                    <p className="text-white/80 text-xs sm:text-sm mt-2 line-clamp-1">{director.name}</p>
+                    <p className="text-white/40 text-xs line-clamp-1">{director.job}</p>
                   </Link>
                 ))}
             </div>
@@ -91,19 +123,43 @@ export default function DetailsFooter({
         }
       </div>
 
-      <div className="mt-8">
-        { suggestedMovies.length > 0 && 
-          <h2 className="text-2xl text-white font-bold mb-3 line-clamp-1">Suggestion like &quot;{selectedMovie?.title}&quot;</h2>
-        }
-        
-        <div className="flex flex-row overflow-x-auto scrollbar-hide gap-4 pb-4">
-          {
-            suggestedMovies.map((movie) => (
+     <div className="mt-8 relative">
+      {suggestedMovies.length > 0 && (
+        <h2 className="font-oswald text-2xl text-white font-bold mb-3 line-clamp-1">
+          Suggestion like &quot;{selectedMovie?.title}&quot;
+        </h2>
+      )}
+
+        <div className="relative">
+          {/* Scrollable list */}
+          <div
+            ref={scrollRef}
+            className="flex flex-row overflow-x-auto scrollbar-hide gap-4 pb-4 scroll-smooth"
+          >
+            {suggestedMovies.map((movie) => (
               <Link href={`/details/${movie.id}`} key={movie.id}>
                 <MovieCard movie={movie} />
               </Link>
-            ))
-          }
+            ))}
+          </div>
+
+          {showLeft && (
+              <button
+              onClick={() => scroll("left")}
+              className="absolute -left-7 top-1/3 p-2.5 z-40 w-12 h-12 bg-black/40 hover:bg-black/60 rounded-full border border-white/80 items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/60 group backdrop-blur-xs hidden md:block"
+            >
+              <ChevronLeft className="w-6 h-6 text-white group-hover:text-white/90 transition-colors" />
+            </button>
+          )}
+
+          {showRight && (
+            <button
+              onClick={() => scroll("right")}
+              className="absolute -right-7 top-1/3 p-2.5 z-40 w-12 h-12 bg-black/40 hover:bg-black/60 rounded-full border border-white/80 items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/60 group backdrop-blur-xs hidden md:block"
+            >
+              <ChevronRight className="w-6 h-6 text-white group-hover:text-white/90 transition-colors" />
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -45,7 +45,7 @@ function isColorTooDark(hex: HexColor): boolean {
 
 function adjustColorForBackground(hex: HexColor): HexColor {
   if (!hex || hex === "#000000" || hex === "#ffffff") {
-    return "#334155" as HexColor; // Better fallback color
+    return "#334155" as HexColor; 
   }
 
   // Simple RGB adjustment instead of complex HSL conversion
@@ -167,9 +167,10 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
   return (
     <div
       style={{ "--border-color": homeColor } as React.CSSProperties}
-      className="sm:w-[340px] sm:h-52 w-[300px] h-40 flex-shrink-0 group relative cursor-pointer border rounded-lg overflow-hidden flex flex-row 
+      className="sm:w-[340px] sm:h-52 w-[300px] h-40 shrink-0 group relative cursor-pointer border
+                dark:border-slate-700 rounded-lg overflow-hidden flex flex-row 
                 transition-all duration-500 ease-out 
-                hover:[border-color:var(--border-color)] hover:[box-shadow:0_0_3px_var(--border-color)]"
+                hover:border-(--border-color) hover:[box-shadow:0_0_3px_var(--border-color)]"
     >
       {colorsLoaded && (
         <div
@@ -191,7 +192,7 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
       {/* Additional overlay for better contrast */}
       <div className="absolute inset-0 bg-black/20" />
       {match.match_status === "live" || match.servers.length > 0 ? 
-        (<span className="absolute top-2 right-2 text-[0.5rem] flex flex-col items-center justify-center text-white/90 animate-pulse">
+        (<span className="absolute top-2 right-2 text-[0.6rem] flex flex-col items-center justify-center text-white/90 animate-pulse">
             <MdLiveTv className=" text-2xl text-white/90 
                            w-5 h-5"/>
             Live
@@ -220,13 +221,13 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <span className="sm:text-xs text-[0.6rem] text-white text-center px-2 font-medium">
+                <span className="sm:text-sm text-xs text-white/60 text-center px-2 font-medium">
                   {match.home_team_name}
                 </span>
               </div>
             )}
           </div>
-          <span className="text-white sm:text-xs text-[0.6rem] font-medium mt-2 text-center max-w-[120px] truncate">
+          <span className="text-white/60 sm:text-sm text-xs font-medium mt-2 text-center max-w-[120px] truncate">
             {match.home_team_name}
           </span>
         </div>
@@ -257,13 +258,13 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <span className="sm:text-xs text-[0.6rem] text-white text-center px-2 font-medium">
+                <span className="sm:text-sm text-xs text-white/60 text-center px-2 font-medium">
                   {match.away_team_name}
                 </span>
               </div>
             )}
           </div>
-          <span className="text-white sm:text-xs text-[0.6rem] font-medium mt-2 text-center max-w-[120px] truncate">
+          <span className="text-white/60 sm:text-sm text-xs font-medium mt-2 text-center max-w-[120px] truncate">
             {match.away_team_name}
           </span>
         </div>

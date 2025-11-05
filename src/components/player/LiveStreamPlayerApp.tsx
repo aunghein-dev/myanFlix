@@ -676,7 +676,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   return (
     <div 
       ref={containerRef} 
-      className={`relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 border border-gray-600/20 ${
+      className={`relative w-full bg-black rounded-xl overflow-hidden aspect-video group transition-all duration-300 border border-gray-600/30 ${
           isControlsVisible ? '' : 'cursor-none' 
       }`}
     >

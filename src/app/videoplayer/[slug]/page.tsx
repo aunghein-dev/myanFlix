@@ -950,7 +950,7 @@ export default function ProfessionalVideoPlayer() {
     >
       <div
         ref={containerRef}
-        className="relative group w-full max-h-[500px] rounded-xl overflow-hidden border border-gray-600/20" 
+        className="relative group w-full max-h-[500px] rounded-xl overflow-hidden border border-gray-600/30" 
         onMouseMove={showControlsTemporarily}
         onMouseLeave={() =>
           !buffering && !isAdPlaying && setShowControls(false)
@@ -1024,7 +1024,7 @@ export default function ProfessionalVideoPlayer() {
                 );
                 if (newTorrent) handleTorrentSelect(newTorrent);
               }}
-              className="bg-black/50 text-white text-sm rounded-lg px-2 pr-6 py-2 appearance-none relative"
+              className="bg-black/50 text-white text-xs sm:text-sm rounded-lg px-2 pr-6 py-2 appearance-none relative"
               style={{
                 backgroundImage:
                   "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' fill='white' viewBox='0 0 20 20'><path d='M5.5 7l4.5 4.5L14.5 7z'/></svg>\")",

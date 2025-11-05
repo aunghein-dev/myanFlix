@@ -41,10 +41,10 @@ export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
         <Spinner className="min-h-[100px] flex items-center justify-center mt-20"/>
       ) : (
-      <div className="flex flex-col items-left justify-center mb-8 border-t border-gray-800/40 pt-4 w-full">
+      <div className="flex flex-col items-left justify-center mb-8 pt-4 w-full">
         <div className="grid grid-cols-1 sm:grid-cols-2 items-center">
           <div className="flex flex-col">
-            <h1 className="text-3xl font-bold mt-6 mb-2 text-white">{movieInfo?.title}</h1>
+            <h1 className="font-oswald text-3xl font-bold mt-6 mb-2 text-white">{movieInfo?.title}</h1>
             <span className="text-sm text-gray-300/70">{(movieInfo?.release_date)}  / {numberToHourMinute(movieInfo?.runtime || 0)}</span>
           </div>
           <div className="sm:border-l border-gray-300/20 sm:pl-4 gap-1 mt-2 sm:mt-0">

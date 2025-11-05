@@ -10,7 +10,6 @@ import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
 import SearchModal from "@/components/model/SearchModal";
 import GlobalImage from "@/components/atoms/GlobalImage";
-import Spinner from "@/components/atoms/Spinner";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 
@@ -39,30 +38,17 @@ export default function Navbar() {
   const pathname = usePathname();
   const [result, setResult] = useState<MovieSearchResult[]>([]);
   const [liveResult, setLiveResult] = useState<FootballMatch[]>([]);
-  const [imagesLoaded, setImagesLoaded] = useState(false);
+  const [currentMobileLogoSrc, setCurrentMobileLogoSrc] = useState("/logo.png");
   
   const searchApiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=`;
 
-  // Preload images on component mount
+
   useEffect(() => {
-    const preloadImages = async () => {
-      const images = ["/logo.png", "/logo-only.png"];
-      
-      const loadPromises = images.map((src) => {
-        return new Promise((resolve) => {
-          const img = new Image();
-          img.src = src;
-          img.onload = () => resolve(src);
-          img.onerror = () => resolve(src); // Resolve even on error
-        });
-      });
-
-      await Promise.all(loadPromises);
-      setImagesLoaded(true);
-    };
-
-    preloadImages();
-  }, []);
+    const newLogoSrc = focused ? "/logo-only.png" : "/logo.png";
+    if (newLogoSrc !== currentMobileLogoSrc) {
+      setCurrentMobileLogoSrc(newLogoSrc);
+    }
+  }, [focused, currentMobileLogoSrc]);
 
   const fetchSuggestions = async (query: string) => {
     const res = await fetch(searchApiUrl + query);
@@ -71,7 +57,7 @@ export default function Navbar() {
     return data.results;
   };
 
-  const { data: liveMatches, error, isLoading } = useSWR<FootballMatch[]>(
+  const { data: liveMatches, isLoading } = useSWR<FootballMatch[]>(
     LIVE,
     fetcher,
     {
@@ -112,12 +98,6 @@ export default function Navbar() {
     return () => clearTimeout(timer);
   }, [query, pathname, liveMatches, isLoading]);
 
-  // Determine which logo to show
-  const mobileLogoSrc = focused ? "/logo-only.png" : "/logo.png";
-  const mobileLogoClass = focused 
-    ? "w-[60px] h-[60px] transition-all duration-300 ease-in-out" 
-    : "ml-10 w-[72px] h-[72px] transition-all duration-300 ease-in-out";
-
   return (
     <div
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
@@ -148,28 +128,37 @@ export default function Navbar() {
               unoptimized
               src="/logo.png"
               alt="App logo"
-              className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px]"
+              className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px] transition-all duration-300"
             />
           </Link>
           
-          {/* Mobile Logo - Changes based on focus */}
-          <Link href="/" className="block sm:hidden">
-            <div className="relative">
-              {!imagesLoaded ? (
-                // Loading placeholder with same dimensions
-                <Spinner className="ml-8"/>
-              ) : (
+          {/* Mobile Logo - Dual image approach for instant switching */}
+            <Link href="/" className="block sm:hidden">
+              <div className="relative w-[72px] h-[72px] mr-10">
+                {/* Normal Logo */}
                 <GlobalImage
-                  width={focused ? 60 : 72}
-                  height={focused ? 60 : 72}
+                  width={72}
+                  height={72}
                   unoptimized
-                  src={mobileLogoSrc}
+                  src="/logo.png"
                   alt="App logo"
-                  className={`object-contain scale-200 select-none mr-10 ${mobileLogoClass}`}
+                  className={`object-contain scale-200 select-none ml-10 absolute top-0 left-0 transition-all duration-300 ease-in-out ${
+                    focused ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                  }`}
                 />
-              )}
-            </div>
-          </Link>
+                {/* Focused Logo */}
+                <GlobalImage
+                  width={60}
+                  height={60}
+                  unoptimized
+                  src="/logo-only.png"
+                  alt="App logo"
+                  className={`object-contain scale-200 select-none ml-1 absolute top-1 left-0 transition-all duration-300 ease-in-out ${
+                    focused ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                  }`}
+                />
+              </div>
+            </Link>
           
           {/* Navigation Links */}
           <div className="ml-6 sm:flex space-x-6 hidden">
