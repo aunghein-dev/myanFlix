@@ -8,7 +8,7 @@ import MovieDetailsAtPlayer from "@/components/layout/MovieDetailsAtPlayer";
 import { X } from "lucide-react";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
-const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL;
+export const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL;
 
 export interface Torrent {
   url: string;

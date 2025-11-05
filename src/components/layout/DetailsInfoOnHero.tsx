@@ -6,8 +6,30 @@ import { GoThumbsdown, GoThumbsup } from "react-icons/go";
 import { HiOutlineBookmark } from "react-icons/hi2";
 import Image from "next/image";
 import Link from "next/link";
+import Spinner from "../atoms/Spinner";
 
-export default function DetailsInfoOnHero({ selectedMovie }: { selectedMovie: MovieDetails }) {
+interface Props {
+  selectedMovie: MovieDetails
+  loading: boolean
+  handleDownloadVideo: () => Promise<void>;
+  notAvailable: boolean
+}
+
+export default function DetailsInfoOnHero(props : Props) {
+  const {selectedMovie, loading, handleDownloadVideo, notAvailable} = props;
+
+  const handleDownloadClick = () => {
+    const urls = [
+      "https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57"
+    ];
+
+    urls.forEach((url) => {
+      window.open(url, "_blank", "noopener,noreferrer");
+    });
+
+    handleDownloadVideo?.();
+  };
+
   return (
     <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full z-50">
       <div className="flex-1 lg:pr-8">
@@ -43,21 +65,33 @@ export default function DetailsInfoOnHero({ selectedMovie }: { selectedMovie: Mo
           </div>
         </div>
       </div>
-
-      <div className="flex flex-row items-center mt-8 sm:mt-0">
-        <Link className="text-white flex flex-row items-center sm:text-md text-sm
-                          bg-[#228EE5] hover:bg-[#1b6fb8] transition-colors 
-                          duration-300 px-5 py-2 rounded-md font-medium"
-            href={`/videoplayer/${selectedMovie?.id}`}>
-          <FaPlay className="inline mr-1 h-3 w-4"/>
-          Watch Now
-        </Link>
-        <button className="border border-[#228EE5]/60 text-white flex flex-row items-center sm:text-md text-sm
-                          hover:bg-white/10 transition-colors 
-                          duration-300 px-5 py-2 rounded-md font-medium ml-4">
-          Preview
-        </button>
-      </div>
+      {
+        notAvailable && <p className="text-xs text-white/10">This movie has any related links. Coming soon.</p>
+      }
+      {
+        !notAvailable && !loading && 
+          <div className="flex flex-row items-center mt-8 sm:mt-0 min-h-10">
+            <Link className="text-white flex flex-row items-center sm:text-md text-sm
+                              bg-[#228EE5] hover:bg-[#1b6fb8] transition-colors 
+                              duration-300 px-5 py-2 rounded-md font-medium"
+                href={`/videoplayer/${selectedMovie?.id}`}>
+              <FaPlay className="inline mr-1 h-3 w-4"/>
+              Watch Now
+            </Link>
+            {
+              loading ? <Spinner className="ml-5 h-full"/> : (
+                <button className="border border-[#228EE5]/60 text-white 
+                                  flex flex-row items-center sm:text-md text-sm
+                                  hover:bg-white/10 transition-colors 
+                                  duration-300 px-5 py-2 rounded-md font-medium ml-4
+                                  cursor-pointer hover:border-[#228EE5]"
+                        onClick={handleDownloadClick}>
+                  Download
+                </button>
+              ) 
+            }
+        </div>
+      }
     </div>
   );
 }

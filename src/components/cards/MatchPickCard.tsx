@@ -1,6 +1,8 @@
 import { PickMatch } from "@/types/matchpick";
 import { TrendingUp, Target, BarChart3 } from "lucide-react";
 import GlobalImage from "../atoms/GlobalImage";
+import dayjs from "dayjs";
+
 
 interface MatchPickCardProps {
   match: PickMatch;
@@ -90,7 +92,7 @@ export default function MatchPickCard({ match, isActive = true }: MatchPickCardP
       </div>
 
       <div className="mb-3 flex flex-col items-center space-y-1">
-        <span className="text-slate-300/80 sm:text-sm text-xs">{match.date_time}</span>
+        <span className="text-slate-300/80 sm:text-sm text-xs">{match.date_time==="Invalid Date" ? "" : match.date_time}</span>
         <span className="sm:text-xl text-sm font-extrabold">{match.league}</span>
       </div>
 
