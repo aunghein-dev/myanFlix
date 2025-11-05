@@ -126,7 +126,8 @@ export default function Navbar() {
                 bg-black/10
                 backdrop-blur-[30px]
                 flex items-center justify-between
-                sm:border border-[#228EE5]/40
+                border-b border-[#228EE5]/20
+                sm:border sm:border-[#228EE5]/40
                 hover:shadow-lg shadow-white/15
                 transition-shadow duration-300
                 cursor-pointer
