@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Play, Pause, Volume2, VolumeX, Minimize, Maximize, RotateCw, Video, Server, X } from "lucide-react";
 import Hls, { type ErrorData } from "hls.js";
 import Spinner from "../atoms/Spinner";
@@ -242,8 +242,11 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const adVideoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  // Merge provided ad config with defaults
-  const finalAdConfig: AdConfig = { ...defaultAdConfig, ...adConfig };
+
+  const finalAdConfig: AdConfig = useMemo(
+    () => ({ ...defaultAdConfig, ...adConfig }),
+    [defaultAdConfig, adConfig] 
+  );
 
   const groupedStreams = groupServers(match.servers);
   const availableQualities = Object.keys(groupedStreams).sort((a, b) => {
@@ -270,10 +273,10 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adMediaUrl, setAdMediaUrl] = useState<string | null>(null);
   const [adDuration, setAdDuration] = useState(0);
-  const [adCurrentTime, setAdCurrentTime] = useState(0);
+  //const [adCurrentTime, setAdCurrentTime] = useState(0);
   const [adSkipOffset, setAdSkipOffset] = useState(5);
   const [canSkipAd, setCanSkipAd] = useState(false);
-  const [adProgress, setAdProgress] = useState(0);
+  //const [adProgress, setAdProgress] = useState(0);
   // NEW: VAST Click Tracking States
   const [adImpressions, setAdImpressions] = useState<string[]>([]);
   const [adClickThrough, setAdClickThrough] = useState<string | null>(null);
@@ -285,7 +288,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const activeServer = groupedStreams[selectedQuality]?.find(s => s.id === selectedServerId);
   const activeStreamUrl = activeServer?.stream_url;
 
-  const { refreshStream, reloadStream } = useHlsPlayer(videoRef, activeStreamUrl);
+  const { refreshStream } = useHlsPlayer(videoRef, activeStreamUrl);
   
   const playTimeRef = useRef(0);
   // --- FIX: Use a ref for prerollPlayed to ensure it only happens once ---
@@ -349,8 +352,8 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
         setAdDuration(adData.duration);
         setAdSkipOffset(adData.skipOffset);
         setCanSkipAd(false);
-        setAdCurrentTime(0);
-        setAdProgress(0);
+        //setAdCurrentTime(0);
+        //setAdProgress(0);
 
         // Pause main content
         if (videoRef.current && isPlaying) {
@@ -368,8 +371,8 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
   const handleAdTimeUpdate = useCallback(() => {
     if (adVideoRef.current) {
       const currentTime = adVideoRef.current.currentTime;
-      setAdCurrentTime(currentTime);
-      setAdProgress((currentTime / adDuration) * 100);
+      //setAdCurrentTime(currentTime);
+      //setAdProgress((currentTime / adDuration) * 100);
 
       if (currentTime >= adSkipOffset && !canSkipAd) {
         setCanSkipAd(true);

@@ -221,8 +221,8 @@ export default function ProfessionalVideoPlayer() {
     []
   );
   const [selectedSubtitle, setSelectedSubtitle] = useState<string>("en");
-  const [subtitleOffset, setSubtitleOffset] = useState<number>(0);
-  const [subtitleSize, setSubtitleSize] = useState<number>(20);
+ // const [subtitleOffset, setSubtitleOffset] = useState<number>(0);
+  //const [subtitleSize, setSubtitleSize] = useState<number>(20);
 
   const [movieInfo, setMovieInfo] = useState<MovieDetails>();
 
@@ -230,10 +230,10 @@ export default function ProfessionalVideoPlayer() {
   const [isAdPlaying, setIsAdPlaying] = useState(false);
   const [adMediaUrl, setAdMediaUrl] = useState<string | null>(null);
   const [adDuration, setAdDuration] = useState(0);
-  const [adCurrentTime, setAdCurrentTime] = useState(0);
+  //const [adCurrentTime, setAdCurrentTime] = useState(0);
   const [adSkipOffset, setAdSkipOffset] = useState(5);
   const [canSkipAd, setCanSkipAd] = useState(false);
-  const [adProgress, setAdProgress] = useState(0);
+  //const [adProgress, setAdProgress] = useState(0);
   const [adConfig] = useState<AdConfig>(defaultAdConfig);
   // NEW: Store all VAST tracking events, including ClickTracking and ClickThrough
   const [adTrackingEvents, setAdTrackingEvents] = useState<{ [event: string]: string[] }>({});
@@ -346,8 +346,8 @@ export default function ProfessionalVideoPlayer() {
           setAdDuration(adData.duration);
           setAdSkipOffset(adData.skipOffset);
           setCanSkipAd(false);
-          setAdCurrentTime(0);
-          setAdProgress(0);
+          //setAdCurrentTime(0);
+          //setAdProgress(0);
           
           // Store all tracking data (including impressions)
           setAdTrackingEvents({ 
@@ -433,10 +433,10 @@ export default function ProfessionalVideoPlayer() {
   const handleAdTimeUpdate = useCallback(() => {
     if (adVideoRef.current) {
       const currentTime = adVideoRef.current.currentTime;
-      setAdCurrentTime(currentTime);
+      //setAdCurrentTime(currentTime);
       
       const duration = adDuration > 0 ? adDuration : 30; // Use 30s as fallback
-      setAdProgress((currentTime / duration) * 100);
+      //setAdProgress((currentTime / duration) * 100);
 
       if (currentTime >= adSkipOffset && !canSkipAd) {
         setCanSkipAd(true);
@@ -704,10 +704,10 @@ export default function ProfessionalVideoPlayer() {
         torrent.url
       )}&lang=${lang}${
         imdbId ? `&imdbId=${imdbId}` : ""
-      }&offset=${subtitleOffset.toFixed(1)}`;
+      }`;
       return url;
     },
-    [movieInfo?.imdb_id, subtitleOffset]
+    [movieInfo?.imdb_id]
   );
 
   useEffect(() => {
@@ -720,7 +720,7 @@ export default function ProfessionalVideoPlayer() {
       document.head.appendChild(style);
     }
 
-    const baseSize = Math.max(12, Math.min(38, subtitleSize));
+    const baseSize = Math.max(12, Math.min(38));
     const responsiveSize = isFullscreen
       ? `clamp(${baseSize}px, 3vw, ${baseSize * 1.5}px)`
       : `${baseSize}px`;
@@ -743,7 +743,7 @@ export default function ProfessionalVideoPlayer() {
         border-radius: 4px !important;
       }
     `;
-  }, [subtitleSize, isFullscreen]);
+  }, [ isFullscreen]);
 
   const showControlsTemporarily = () => {
     setShowControls(true);
@@ -777,11 +777,16 @@ export default function ProfessionalVideoPlayer() {
     if (slug) {
       loadMovieData();
     }
+
+    const controlsTimeout = controlsTimeoutRef.current;
+    const adTimeout = adTimerRef.current;
+
     return () => {
-      clearTimeout(controlsTimeoutRef.current);
-      if (adTimerRef.current) clearTimeout(adTimerRef.current);
+      if (controlsTimeout) clearTimeout(controlsTimeout);
+      if (adTimeout) clearTimeout(adTimeout);
     };
   }, [slug, loadMovieData]);
+
 
   useEffect(() => {
     const loadSubtitle = async () => {
@@ -806,7 +811,7 @@ export default function ProfessionalVideoPlayer() {
       if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
     };
     // FIX 1: Removed `subtitleBlobUrl` from dependency array to prevent loop
-  }, [selectedTorrent, selectedSubtitle, subtitleOffset, getSubtitleUrl]);
+  }, [selectedTorrent, selectedSubtitle, getSubtitleUrl, subtitleBlobUrl]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

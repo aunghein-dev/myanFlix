@@ -1,7 +1,6 @@
 import { PickMatch } from "@/types/matchpick";
 import { TrendingUp, Target, BarChart3 } from "lucide-react";
 import GlobalImage from "../atoms/GlobalImage";
-import dayjs from "dayjs";
 
 
 interface MatchPickCardProps {

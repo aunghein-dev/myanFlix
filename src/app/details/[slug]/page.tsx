@@ -7,8 +7,7 @@ import DetailsFooter from "../../../components/layout/DetailsFooter";
 import { useMovieDetails } from "@/hook/useMovieDetails";
 import Spinner from "@/components/atoms/Spinner";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/router";
-import { SubtitleLanguage, Torrent, TORRENT_BACKEND_URL } from "@/app/videoplayer/[slug]/page";
+import { Torrent, TORRENT_BACKEND_URL } from "@/app/videoplayer/[slug]/page";
 
 interface Images {
   backdrops: { file_path: string }[];
