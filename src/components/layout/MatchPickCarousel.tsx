@@ -42,7 +42,7 @@ export default function MatchPickCarousel({ picks, activeIndex, setActiveIndex }
           <>
             <button
               onClick={prevSlide}
-              className="absolute left-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/40 group"
+              className="absolute left-1 sm:left-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/40 group"
               aria-label="Previous match"
             >
               <ChevronLeft className="w-6 h-6 text-white group-hover:text-white/90 transition-colors" />
@@ -50,7 +50,7 @@ export default function MatchPickCarousel({ picks, activeIndex, setActiveIndex }
             
             <button
               onClick={nextSlide}
-              className="absolute right-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/40 group"
+              className="absolute right-1 sm:right-4 top-1/2 -translate-y-1/2 z-40 w-12 h-12 bg-black/10 hover:bg-black/20 backdrop-blur-sm rounded-full border border-white/20 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:border-white/40 group"
               aria-label="Next match"
             >
               <ChevronRight className="w-6 h-6 text-white group-hover:text-white/90 transition-colors" />

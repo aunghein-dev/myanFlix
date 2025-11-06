@@ -9,9 +9,12 @@ interface HeroSectionProps {
   setActiveIndex: (index: number) => void;
   activeMovie: Movie;
   loading: boolean;
+  torrentAvailableIds: Set<number>;
 }
 
-export default function HeroSection({ movies, activeIndex, setActiveIndex, activeMovie, loading }: HeroSectionProps) {
+export default function HeroSection({ movies, activeIndex, setActiveIndex, activeMovie, loading, torrentAvailableIds }: HeroSectionProps) {
+
+  const hasTorrent = activeMovie && torrentAvailableIds.has(activeMovie.id);
   return (
     <>
       {loading && <Spinner className="min-h-[600px]"/>}
@@ -38,7 +41,7 @@ export default function HeroSection({ movies, activeIndex, setActiveIndex, activ
                   <div className="lg:hidden mb-4">  
                     <Carousel movies={movies} activeIndex={activeIndex} setActiveIndex={setActiveIndex} />
                   </div>
-                  <HeroDetails activeMovie={activeMovie} />
+                  <HeroDetails activeMovie={activeMovie} hasTorrent={hasTorrent} />
                 </div>
 
               <div className="hidden lg:block flex-shrink-0 ml-4">  

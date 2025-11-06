@@ -1,4 +1,4 @@
-<img src="https://github.com/aunghein-dev/myanFlix/blob/main/public/logo2.png?raw=true" alt="Openware Logo" width="111" align="right" hspace="0" />
+<img src="https://github.com/aunghein-dev/myanFlix/blob/main/public/logo2.png?raw=true" alt="Openware Logo" width="98" align="right" hspace="0" />
 
 # myanFlix
 

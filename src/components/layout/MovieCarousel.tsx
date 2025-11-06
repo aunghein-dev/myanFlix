@@ -29,10 +29,10 @@ export default function MovieCarousel({ movies, activeIndex, setActiveIndex }: {
                       alt={movie.title}
                       className={`
                         rounded-lg shadow-2xl transition-all duration-300
-                        object-center object-cover border-[#228EE5]/80 border
+                        object-center object-cover border-[#228EE5]/40 border
                         ${isActive 
-                          ? "w-20 h-22 scale-120 z-20 transform -translate-y-2" 
-                          : "w-20 h-22"
+                          ? "w-20 h-24 scale-120 z-20 transform -translate-y-2" 
+                          : "w-20 h-24"
                         }
                       `}
                     />

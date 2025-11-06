@@ -3,7 +3,7 @@
 'use client';
 import Script from 'next/script';
 
-export default function AdsLoader() {
+export default function AdsterraAdsLoader() {
   return (
     <Script
       id="effective-gate-cpm-ad-script"
@@ -22,7 +22,7 @@ export default function AdsLoader() {
               }
           }, 1000); 
       }}
-      onError={(e) => console.error('❌ Ad script failed to load:', e)}
+      onError={(e) => console.warn('❌ Ad script failed to load:', e)}
     />
   );
 }

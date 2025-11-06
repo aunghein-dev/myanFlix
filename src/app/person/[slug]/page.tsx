@@ -105,7 +105,7 @@ export default function PersonPage() {
   return (
     <div
       ref={scrollRef}
-      className="mx-auto max-w-6xl sm:max-w-2xl md:max-w-3xl lg:max-w-5xl px-4 sm:px-2 mt-30"
+      className="mx-auto max-w-6xl sm:max-w-2xl md:max-w-3xl lg:max-w-5xl px-4 sm:px-2 sm:mt-30 mt-22"
     >
       {isPersonLoading ? (
         <div className="flex items-center justify-center min-h-[196px]">

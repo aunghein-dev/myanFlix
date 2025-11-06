@@ -40,9 +40,22 @@ const filterRecentMovies = (movie: Movie) => {
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
+async function hasTorrent(imdbId?: string): Promise<boolean> {
+  if (!imdbId) return false;
+    try {
+      const res = await fetch(`https://yts.mx/api/v2/movie_details.json?imdb_id=${imdbId}`);
+      if (!res.ok) return false;
+      const data = await res.json();
+      const torrents = data?.data?.movie?.torrents ?? [];
+      return torrents.length > 0;
+    } catch {
+      return false;
+    }
+}
+
 export default function Home() {
   const [activeIndex, setActiveIndex] = useState(2);
-  const [heroMoviesWithTorrents, setHeroMoviesWithTorrents] = useState<Movie[]>([]);
+  const [torrentAvailableIds, setTorrentAvailableIds] = useState<Set<number>>(new Set());
 
   const { data: heroData, isLoading: heroLoading } = useSWR<TMDBResponse<Movie>>(endpoints.hero, fetcher);
   const { data: trendingData, isLoading: trendingLoading } = useSWR<TMDBResponse<Movie>>(endpoints.trending, fetcher);
@@ -63,27 +76,18 @@ export default function Home() {
     errorRetryCount: 3,
   });
 
-  /** 🔹 Check if YTS has torrent for IMDb ID */
-  async function hasTorrent(imdbId?: string): Promise<boolean> {
-    if (!imdbId) return false;
-    try {
-      const res = await fetch(`https://yts.mx/api/v2/movie_details.json?imdb_id=${imdbId}`);
-      if (!res.ok) return false;
-      const data = await res.json();
-      const torrents = data?.data?.movie?.torrents ?? [];
-      return torrents.length > 0;
-    } catch {
-      return false;
-    }
-  }
+  const heroMovies = useMemo(
+    () => heroData?.results.slice(0, 5) ?? [], 
+    [heroData]
+  );
 
-  /** 🔹 Fetch IMDb IDs in parallel + check torrents fast */
   useEffect(() => {
-    if (!heroData?.results) return;
+    // Run as soon as heroMovies are available
+    if (heroMovies.length === 0) return;
 
     const fetchHeroTorrents = async () => {
-      const candidates = heroData.results.slice(0, 12); // try 12 movies
-      const imdbPromises = candidates.map(async (movie) => {
+      // 1. Get IMDb IDs for all candidates
+      const imdbPromises = heroMovies.map(async (movie) => {
         try {
           const res = await fetch(`${BASE_URL}/movie/${movie.id}/external_ids?api_key=${API_KEY}`);
           const data = await res.json();
@@ -92,36 +96,36 @@ export default function Home() {
           return movie;
         }
       });
-
       const withImdb = await Promise.all(imdbPromises);
 
-      // Limit concurrency for YTS calls
+      // 2. Check for torrents in chunks (to be kind to YTS)
       const limit = 3;
-      const torrentMovies: Movie[] = [];
       for (let i = 0; i < withImdb.length; i += limit) {
         const chunk = withImdb.slice(i, i + limit);
+        
         const results = await Promise.all(
           chunk.map(async (m) => {
             const has = await hasTorrent(m.imdb_id);
             return has ? m : null;
           })
         );
-
-        for (const valid of results.filter(Boolean) as Movie[]) {
-          torrentMovies.push(valid);
-          if (torrentMovies.length >= 5) break;
+        
+        const validMovies = results.filter(Boolean) as Movie[];
+        
+        if (validMovies.length > 0) {
+          setTorrentAvailableIds(prevSet => {
+            const newSet = new Set(prevSet);
+            validMovies.forEach(m => newSet.add(m.id));
+            return newSet;
+          });
         }
-
-        if (torrentMovies.length >= 5) break;
       }
-
-      setHeroMoviesWithTorrents(torrentMovies);
     };
 
     fetchHeroTorrents();
-  }, [heroData]);
+  }, [heroMovies]);
 
-  const activeMovie = heroMoviesWithTorrents[activeIndex];
+  const activeMovie = heroMovies[activeIndex];
 
   // Memoized movie lists
   const trendingMovies = useMemo(
@@ -161,11 +165,12 @@ export default function Home() {
   return (
     <div>
       <HeroSection
-        loading={heroLoading || heroMoviesWithTorrents.length === 0}
-        movies={heroMoviesWithTorrents}
+        loading={heroLoading}
+        movies={heroMovies}
         activeIndex={activeIndex}
         setActiveIndex={setActiveIndex}
         activeMovie={activeMovie}
+        torrentAvailableIds={torrentAvailableIds}
       />
 
       <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 pt-3">

@@ -19,15 +19,12 @@ export interface MovieDetailsAtPlayerProps {
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
   const handleDownloadClick = () => {
-    const urls = [
-      "https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57"
-    ];
-
-    urls.forEach((url) => {
-      window.open(url, "_blank", "noopener,noreferrer");
-    });
-
-    onDownload?.();
+    window.open("/api/redirect-ads", "_blank");
+    setTimeout(() => {
+      if (onDownload) {
+        onDownload();
+      }
+    }, 50);  
   };
 
   const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;

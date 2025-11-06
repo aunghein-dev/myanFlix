@@ -104,8 +104,8 @@ export default function LivePage() {
 
   return (
     <section className="relative">
-      {picksLoading ? <Spinner className="min-h-[600px]"/> : (
-        <div className="relative h-[600px] select-none overflow-hidden ">
+      {picksLoading ? <Spinner className="min-h-[580px] sm:h-[600px]"/> : (
+        <div className="relative h-[580px] sm:h-[600px] select-none overflow-hidden ">
           <div
             className="absolute inset-0 bg-cover bg-bottom transition-all duration-500"
             style={{ backgroundImage: `url(/fbhero.avif)` }}

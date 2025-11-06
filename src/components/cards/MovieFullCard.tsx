@@ -59,11 +59,11 @@ export default function MovieFullCard({ movie, rank }: { movie: Movie, rank: num
                        font-extrabold text-xl`}>{rank}</span>
       <Link 
         href={`/videoplayer/${movie?.id}`}
-        className="bg-gray-400 text-black/90 absolute bottom-2 sm:left-45 left-32 sm:px-10 px-4 sm:py-2 py-1.5 rounded-md font-bold cursor-pointer hover:bg-gray-300 transition-colors duration-150 ease-out sm:text-md text-sm">
+        className="bg-gray-400 text-black/90 absolute bottom-2 sm:left-44 left-32 sm:px-10 px-4 sm:py-2 py-1.5 rounded-md font-bold cursor-pointer hover:bg-gray-300 transition-colors duration-150 ease-out sm:text-md text-sm">
         <FaPlay className="inline mb-1 sm:w-4 sm:h-4 mr-1 w-3 h-3" />
         Play
       </Link>
-      <div className="flex flex-col items-left gap-1 max-w-[260px] sm:w-full">
+      <div className="flex flex-col items-left gap-1 max-w-[260px] sm:max-w-[480px] md:max-w-[320px] sm:w-full">
         <Link className="font-oswald font-bold text-white/90 sm:text-md text-sm leading-snug select-none line-clamp-1 hover:underline"
           href={`/details/${movie.id}`}>
           {movie.title}

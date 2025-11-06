@@ -78,10 +78,10 @@ export default function LineMovieList({
 
       <div
         ref={scrollRef}
-        className="flex flex-row py-1 min-h-[265px] overflow-x-auto scrollbar-hide space-x-3 scroll-smooth"
+        className="flex flex-row py-1 min-h-[270.5px] overflow-x-auto scrollbar-hide space-x-3 scroll-smooth"
       >
         {loading && (
-          <div className="w-full min-w-full min-h-[265px] flex justify-center items-center">
+          <div className="w-full min-w-full min-h-[265px] sm:min-h-[270.5px] flex justify-center items-center">
             <Spinner />
           </div>
         )}

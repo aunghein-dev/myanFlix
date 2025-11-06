@@ -4,7 +4,6 @@ import dayjs from "dayjs";
 import { FaPlay } from "react-icons/fa";
 import { GoThumbsdown, GoThumbsup } from "react-icons/go";
 import { HiOutlineBookmark } from "react-icons/hi2";
-import Image from "next/image";
 import Link from "next/link";
 import Spinner from "../atoms/Spinner";
 
@@ -13,21 +12,19 @@ interface Props {
   loading: boolean
   handleDownloadVideo: () => Promise<void>;
   notAvailable: boolean
+  generatingLoading: boolean
 }
 
 export default function DetailsInfoOnHero(props : Props) {
-  const {selectedMovie, loading, handleDownloadVideo, notAvailable} = props;
+  const {selectedMovie, loading, handleDownloadVideo, notAvailable, generatingLoading} = props;
 
   const handleDownloadClick = () => {
-    const urls = [
-      "https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57"
-    ];
-
-    urls.forEach((url) => {
-      window.open(url, "_blank", "noopener,noreferrer");
-    });
-
-    handleDownloadVideo?.();
+    window.open("/api/redirect-ads", "_blank");
+    setTimeout(() => {
+      if (handleDownloadVideo) {
+        handleDownloadVideo();
+      }
+    }, 50);  
   };
 
   return (
@@ -42,8 +39,8 @@ export default function DetailsInfoOnHero(props : Props) {
             {" - "}
             <span>{selectedMovie?.origin_country?.[0] ?? ""}</span>
           </div>
-          <Image width={100} height={20} unoptimized src="/5stars.svg" alt="Imdb rates" className="mt-1 min-h-[26px]"/>
-          <div className="flex flex-row items-center gap-4">
+         
+          <div className="flex flex-row items-center gap-3">
             <button
               className="bg-black p-2 border border-[#228EE5]/60 text-white flex 
               justify-center flex-row items-center mt-4 rounded-full hover:bg-[#228EE5] transition duration-300 ease-in-out"
@@ -66,7 +63,9 @@ export default function DetailsInfoOnHero(props : Props) {
         </div>
       </div>
       {
-        notAvailable && <p className="text-xs text-white/10">This movie has any related links. Coming soon.</p>
+        notAvailable && <p className="absolute left-1/2 -translate-x-1/2 bottom-0 sm:text-sm 
+                                      text-xs text-white/20
+                                      transition duration-400 ease-in-out">This movie has any related links. Coming soon.</p>
       }
       {
         !notAvailable && !loading && 
@@ -80,13 +79,19 @@ export default function DetailsInfoOnHero(props : Props) {
             </Link>
             {
               loading ? <Spinner className="ml-5 h-full"/> : (
-                <button className="border border-[#228EE5]/60 text-white 
-                                  flex flex-row items-center sm:text-md text-sm
-                                  hover:bg-white/10 transition-colors 
-                                  duration-300 px-5 py-2 rounded-md font-medium ml-4
-                                  cursor-pointer hover:border-[#228EE5]"
-                        onClick={handleDownloadClick}>
-                  Download
+                <button
+                  className="border border-[#228EE5]/60 text-white 
+                            flex flex-row items-center sm:text-md text-sm
+                            hover:bg-white/10 transition-colors duration-300 
+                            px-5 py-2 rounded-md font-medium ml-4
+                            cursor-pointer hover:border-[#228EE5]"
+                  onClick={handleDownloadClick}
+                  disabled={generatingLoading} 
+                >
+                  {generatingLoading && (
+                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
+                  )}
+                  {generatingLoading ? "Generating" : "Download"}
                 </button>
               ) 
             }

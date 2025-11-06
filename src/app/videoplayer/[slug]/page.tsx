@@ -42,7 +42,7 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-"https://s.magsrv.com/v1/vast.php?idzone=5762920",
+"https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
   adFrequency: 50,
   skipOffset: 10,
   preRoll: true,
@@ -98,7 +98,7 @@ class VASTParser {
       // Prioritize webm (better compatibility in some cases) then progressive MP4
       const mediaFiles = Array.from(xmlDoc.querySelectorAll("MediaFile"));
       const webmMedia = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm');
-      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/mp4' && mf.getAttribute('delivery') === 'progressive');
+      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm' && mf.getAttribute('delivery') === 'progressive');
       const mediaFile = webmMedia || mp4Media || mediaFiles[0];
       const mediaUrl = mediaFile?.textContent?.trim();
 
@@ -141,7 +141,7 @@ class VASTParser {
 
       return { mediaUrl, duration, skipOffset, impressions, trackingEvents };
     } catch (error) {
-      console.error("VAST parsing error:", error);
+      console.warn("VAST parsing error:", error);
       return null;
     }
   }
@@ -330,6 +330,28 @@ export default function ProfessionalVideoPlayer() {
       }
   }, [adTrackingEvents]);
 
+  // Skip ad
+  const skipAd = useCallback(() => {
+    // Fire Skip tracking event
+    fireTrackingUrls('skip');
+    
+    if (adVideoRef.current) {
+      adVideoRef.current.pause();
+      adVideoRef.current.src = ""; // Clear source
+      adVideoRef.current.load(); // Stop fetching
+    }
+    
+    // Clear all ad states
+    setIsAdPlaying(false);
+    setAdMediaUrl(null);
+    setAdTrackingEvents({});
+    
+    // Resume main content if it was playing
+    if (videoRef.current && isPlaying) {
+      videoRef.current.play().catch(console.error);
+    }
+  }, [isPlaying, fireTrackingUrls]);
+
   // Load and play ad
   const playAd = useCallback(
     async (adType: "preRoll" | "midRoll" | "postRoll" = "midRoll") => {
@@ -367,6 +389,9 @@ export default function ProfessionalVideoPlayer() {
               videoRef.current.currentTime = videoRef.current.duration;
             }
           }
+        } else {
+          console.warn("VAST ad data was null. Skipping ad sequence.");
+          skipAd();
         }
       } catch (error) {
         console.error("Failed to load ad:", error);
@@ -377,30 +402,10 @@ export default function ProfessionalVideoPlayer() {
         }
       }
     },
-    [adConfig, isAdPlaying, isPlaying]
+    [adConfig, isAdPlaying, isPlaying, skipAd]
   );
 
-  // Skip ad
-  const skipAd = useCallback(() => {
-    // Fire Skip tracking event
-    fireTrackingUrls('skip');
-    
-    if (adVideoRef.current) {
-      adVideoRef.current.pause();
-      adVideoRef.current.src = ""; // Clear source
-      adVideoRef.current.load(); // Stop fetching
-    }
-    
-    // Clear all ad states
-    setIsAdPlaying(false);
-    setAdMediaUrl(null);
-    setAdTrackingEvents({});
-    
-    // Resume main content if it was playing
-    if (videoRef.current && isPlaying) {
-      videoRef.current.play().catch(console.error);
-    }
-  }, [isPlaying, fireTrackingUrls]);
+  
   
   // NEW: Ad Click Handler
   const handleAdClick = useCallback(() => {
@@ -810,8 +815,7 @@ export default function ProfessionalVideoPlayer() {
     return () => {
       if (subtitleBlobUrl) URL.revokeObjectURL(subtitleBlobUrl);
     };
-    // FIX 1: Removed `subtitleBlobUrl` from dependency array to prevent loop
-  }, [selectedTorrent, selectedSubtitle, getSubtitleUrl, subtitleBlobUrl]);
+  }, [selectedTorrent, selectedSubtitle, getSubtitleUrl]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -951,8 +955,8 @@ export default function ProfessionalVideoPlayer() {
   return (
     <div
       className="sm:mt-30 mt-25 text-white flex justify-center items-start
-                   sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-2 sm:px-0
-                   flex-row flex-wrap"
+                  sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-2 sm:px-0
+                  flex-row flex-wrap"
     >
       <div
         ref={containerRef}

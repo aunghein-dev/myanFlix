@@ -41,7 +41,7 @@ interface AdConfig {
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://s.magsrv.com/v1/vast.php?idzone=5762920",
+  vastUrl: "https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
   adFrequency: 42, 
   skipOffset: 10
 };
@@ -78,11 +78,16 @@ class VASTParser {
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-      // Media file
-      const mediaFile = xmlDoc.querySelector("MediaFile");
-      const mediaUrl = mediaFile?.textContent;
+      const mediaFiles = Array.from(xmlDoc.querySelectorAll("MediaFile"));
+      const webmMedia = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm');
+      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm' && mf.getAttribute('delivery') === 'progressive');
+      const mediaFile = webmMedia || mp4Media || mediaFiles[0];
+      const mediaUrl = mediaFile?.textContent?.trim();
 
-      if (!mediaUrl) return null;
+      if (!mediaUrl) {
+         console.warn("No compatible MediaFile found in VAST inline response.");
+         return null;
+      }
 
       // Duration
       const durationElem = xmlDoc.querySelector("Duration");
@@ -120,7 +125,7 @@ class VASTParser {
         clickTracking // RETURN NEW FIELD
       };
     } catch (error) {
-      console.error("VAST parsing error:", error);
+      console.warn("VAST parsing error:", error);
       return null;
     }
   }
@@ -314,11 +319,13 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
 
     // Resume main content
     if (videoRef.current) {
-        if (isPlaying) { 
-          videoRef.current.play().catch(console.error);
-        }
+        videoRef.current.play().catch(e => {
+          if (e.name !== 'AbortError') {
+             console.error("Failed to play main content after ad:", e);
+          }
+        });
     }
-  }, [isPlaying]); 
+  }, []); 
 
   // NEW: Ad Click Handler
   const handleAdClick = useCallback(() => {
@@ -343,6 +350,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
 
     try {
       const adData = await VASTParser.parse(finalAdConfig.vastUrl);
+
       if (adData) {
         // NEW: Store impression and click tracking data
         setAdImpressions(adData.impressions);
@@ -362,12 +370,16 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
         if (videoRef.current && isPlaying) {
           videoRef.current.pause();
         }
+      } else {
+        console.warn("VAST ad data was null. Skipping ad sequence.");
+        skipAd();
       }
     } catch (error) {
       console.error("Failed to load ad:", error);
       setIsAdPlaying(false);
+      skipAd();
     }
-  }, [finalAdConfig, isAdPlaying, isPlaying]);
+  }, [finalAdConfig, isAdPlaying, isPlaying, skipAd]);
 
 
   // Handle ad time update
@@ -414,7 +426,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd, finalAdConfig.enabled]);
+  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd, finalAdConfig]);
 
   // --- FIX: Corrected Pre-roll Ad Logic ---
   useEffect(() => {

@@ -179,7 +179,7 @@ export default function LineCharacterList() {
         >
           {activeList.map((person) => (
             <Link
-              className="mr-2 sm:mr-5 last:mr-0"
+              className="mr-2 sm:mr-3 last:mr-0"
               key={nanoid()}
               href={`/person/${person.id}`}
               scroll={true}

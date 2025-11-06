@@ -3,9 +3,9 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
-import AdsLoader from "@/components/ads/AdsLoader";
+import AdsterraAdsLoader from "@/components/ads/AdsterraAdsLoader";
 import Head from "next/head";
-import VideoSliderAdsLoader from "@/components/ads/VideoSliderAdsLoader";
+import HilltopAdsLoader from "@/components/ads/HilltopAdsLoader";
 
 
 export const metadata: Metadata = {
@@ -53,14 +53,8 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico"/>
       </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
-        <Script
-          src="https://a.pemsrv.com/ad-provider.js"
-          strategy="afterInteractive"
-          async
-          type="application/javascript"
-        />
-        <AdsLoader />
-        <VideoSliderAdsLoader/>
+        <AdsterraAdsLoader />
+        <HilltopAdsLoader/>
         <Container>{children}</Container>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"

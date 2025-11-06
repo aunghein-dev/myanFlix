@@ -56,6 +56,8 @@ export default function Details() {
   const [loading, setLoading] = useState(true);
   const [selectedTorrent, setSelectedTorrent] = useState<Torrent | null>(null);
   const notAvailable = (selectedTorrent === undefined || null );
+  const [generatingLoading, setGeneratingLoading] = useState(false);
+
   const loadMovieData = useCallback(async () => {
     try {
       setLoading(true);
@@ -93,6 +95,8 @@ export default function Details() {
 
 
   const handleDownloadVideo = useCallback(async () => {
+
+    setGeneratingLoading(true);
     if (!selectedTorrent || !selectedMovie) return;
 
     try {
@@ -129,6 +133,8 @@ export default function Details() {
     } catch (error) {
       console.error("❌ Download failed:", error);
       alert(`Download failed: ${error}. Please try again later.`);
+    } finally {
+      setGeneratingLoading(false);
     }
   }, [selectedTorrent, selectedMovie]);
 
@@ -161,6 +167,7 @@ export default function Details() {
               loading={loading}
               handleDownloadVideo={handleDownloadVideo}
               notAvailable={notAvailable!}
+              generatingLoading={generatingLoading}
             />
           }
          </div>

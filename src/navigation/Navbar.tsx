@@ -111,7 +111,7 @@ export default function Navbar() {
   return (
     <div
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
-                sm:rounded-3xl mb-6 fixed top-0 sm:top-4
+                sm:rounded-2xl mb-6 fixed top-0 sm:top-4
                 left-0 right-0
                 bg-black/10
                 backdrop-blur-[30px]
