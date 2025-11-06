@@ -15,12 +15,13 @@ const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export const uniqueMatches = (matches: FootballMatch[] = []) => {
   const seen = new Set<string>();
   return matches.filter((m) => {
-    const key = m.match_time ?? `${m.home_team_name}-${m.away_team_name}-${m.league_name}`;
+    const key = `${m.home_team_name}-${m.away_team_name}-${m.league_name}-${m.match_time}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
   });
 };
+
 export default function LivePage() {
 
   const [activeIndex, setActiveIndex] = React.useState(0);
@@ -102,6 +103,7 @@ export default function LivePage() {
     liveMatches?.filter((m) => m.league_name === "FRA D1")
   );
 
+  
   return (
     <section className="relative">
       {picksLoading ? <Spinner className="min-h-[580px] sm:h-[600px]"/> : (
