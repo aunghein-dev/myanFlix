@@ -52,7 +52,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico"/>
       </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
-        <SocialBarAd position="auto" zIndex={9000} />
+        <SocialBarAd />
         <Container>{children}</Container>
         
 
