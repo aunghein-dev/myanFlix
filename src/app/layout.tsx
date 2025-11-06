@@ -53,10 +53,15 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico"/>
       </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
+        <Script
+          src="https://a.pemsrv.com/ad-provider.js"
+          strategy="afterInteractive"
+          async
+          type="application/javascript"
+        />
         <AdsLoader />
+        <VideoSliderAdsLoader/>
         <Container>{children}</Container>
-        
-
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"
           strategy="afterInteractive"
@@ -69,7 +74,6 @@ export default function RootLayout({
             gtag('config', 'G-YMXJE571BD');
           `}
         </Script>
-        <VideoSliderAdsLoader/>
       </body>
     </html>
   );

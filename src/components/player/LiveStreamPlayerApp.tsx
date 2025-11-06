@@ -41,7 +41,7 @@ interface AdConfig {
 // Default ad configuration
 const defaultAdConfig: AdConfig = {
   enabled: true,
-  vastUrl: "https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
+  vastUrl: "https://s.magsrv.com/v1/vast.php?idzone=5762920",
   adFrequency: 42, 
   skipOffset: 10
 };
@@ -244,8 +244,11 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
 
 
   const finalAdConfig: AdConfig = useMemo(
-    () => ({ ...defaultAdConfig, ...adConfig }),
-    [defaultAdConfig, adConfig] 
+      () => ({ 
+        ...defaultAdConfig, 
+        ...adConfig 
+      }),
+      [adConfig] 
   );
 
   const groupedStreams = groupServers(match.servers);
@@ -411,7 +414,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd]);
+  }, [isPlaying, isAdPlaying, finalAdConfig.adFrequency, playAd, finalAdConfig.enabled]);
 
   // --- FIX: Corrected Pre-roll Ad Logic ---
   useEffect(() => {
@@ -686,7 +689,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
       {/* Main Video */}
       <video
         ref={videoRef}
-        onClick={(e) => {
+        onClick={() => {
           if (!isAdPlaying) {
             setIsControlsVisible(true); 
             togglePlay();

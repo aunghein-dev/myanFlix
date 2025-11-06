@@ -4,7 +4,7 @@ import NavbarData from "../data/navbar.data";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Search from "@/components/atoms/Search";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; // Added useCallback
 import useSWR from "swr";
 import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
@@ -38,24 +38,22 @@ export default function Navbar() {
   const pathname = usePathname();
   const [result, setResult] = useState<MovieSearchResult[]>([]);
   const [liveResult, setLiveResult] = useState<FootballMatch[]>([]);
-  const [currentMobileLogoSrc, setCurrentMobileLogoSrc] = useState("/logo.png");
-  
+  // Removed currentMobileLogoSrc state as it's not needed with the dual image approach
+
   const searchApiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=`;
 
 
-  useEffect(() => {
-    const newLogoSrc = focused ? "/logo-only.png" : "/logo.png";
-    if (newLogoSrc !== currentMobileLogoSrc) {
-      setCurrentMobileLogoSrc(newLogoSrc);
-    }
-  }, [focused, currentMobileLogoSrc]);
-
-  const fetchSuggestions = async (query: string) => {
-    const res = await fetch(searchApiUrl + query);
+  // FIX: Simplified mobile logo logic. The conditional classNames in JSX are now sufficient.
+  // The state and useEffect for currentMobileLogoSrc is no longer necessary
+  // due to the dual-image JSX approach you are using.
+  
+  // 1. Fetch Suggestions Function - Wrapped in useCallback
+  const fetchSuggestions = useCallback(async (searchQuery: string) => {
+    const res = await fetch(searchApiUrl + searchQuery);
     const data = await res.json();
     setResult(data.results);
     return data.results;
-  };
+  }, [searchApiUrl]); // Dependency: searchApiUrl (which is a stable const but good practice)
 
   const { data: liveMatches, isLoading } = useSWR<FootballMatch[]>(
     LIVE,
@@ -67,14 +65,15 @@ export default function Navbar() {
     }
   );
 
-  const searchLiveMatches = (query: string) => {
+  // 2. Search Live Matches Function - Wrapped in useCallback
+  const searchLiveMatches = useCallback((searchQuery: string) => {
     if (!liveMatches) return;
     const res = liveMatches.filter((m) => 
-      m.away_team_name.toLowerCase().includes(query.toLowerCase()) || 
-      m.home_team_name.toLowerCase().includes(query.toLowerCase())
+      m.away_team_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      m.home_team_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setLiveResult(res);
-  };
+  }, [liveMatches]); // Dependency: liveMatches (data from SWR)
 
   const allowRoutes = ["/", "/movies", "/videoplayer", "/details"];
 
@@ -83,20 +82,31 @@ export default function Navbar() {
     pathname.startsWith("/details/") ||
     pathname.startsWith("/videoplayer/");
 
+  // 3. Main Search Effect - Added stable dependencies
   useEffect(() => {
     if (!isAllowedPage) {
+      // Logic for Live Matches search (outside allowed pages)
       if (query.trim().length > 0 && !isLoading) searchLiveMatches(query);
       else setLiveResult([]);
       return;
     }
       
+    // Logic for Movie Suggestions search (on allowed pages)
     const timer = setTimeout(() => {
       if (query.trim().length > 0) fetchSuggestions(query);
       else setResult([]);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [query, pathname, liveMatches, isLoading]);
+  }, [
+    query, 
+    pathname, 
+    liveMatches, // Used in searchLiveMatches, which is a dependency
+    isLoading, // Used directly in conditional check
+    isAllowedPage, // Used directly in conditional check
+    searchLiveMatches, // Now a stable function via useCallback
+    fetchSuggestions // Now a stable function via useCallback
+]);
 
   return (
     <div
@@ -132,7 +142,7 @@ export default function Navbar() {
             />
           </Link>
           
-          {/* Mobile Logo - Dual image approach for instant switching */}
+          {/* Mobile Logo - Dual image approach (currentMobileLogoSrc state removed) */}
             <Link href="/" className="block sm:hidden">
               <div className="relative w-[72px] h-[72px] mr-10">
                 {/* Normal Logo */}

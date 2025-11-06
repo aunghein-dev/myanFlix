@@ -42,7 +42,7 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
-"https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
+"https://s.magsrv.com/v1/vast.php?idzone=5762920",
   adFrequency: 50,
   skipOffset: 10,
   preRoll: true,
