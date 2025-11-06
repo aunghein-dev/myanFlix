@@ -3,8 +3,9 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
-import SocialBarAd from "@/components/ads/SocialBarAd";
+import AdsLoader from "@/components/ads/AdsLoader";
 import Head from "next/head";
+import VideoSliderAdsLoader from "@/components/ads/VideoSliderAdsLoader";
 
 
 export const metadata: Metadata = {
@@ -52,7 +53,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.ico"/>
       </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
-        <SocialBarAd />
+        <AdsLoader />
         <Container>{children}</Container>
         
 
@@ -68,6 +69,7 @@ export default function RootLayout({
             gtag('config', 'G-YMXJE571BD');
           `}
         </Script>
+        <VideoSliderAdsLoader/>
       </body>
     </html>
   );
