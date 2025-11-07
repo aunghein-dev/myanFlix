@@ -19,8 +19,20 @@ export interface TMDBResponse<T> {
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const BASE_URL = "https://api.themoviedb.org/3";
 
+async function fetchPages<T>(url: string): Promise<TMDBResponse<T>> {
+  const [page1, page2,] = await Promise.all([
+    fetch(`${url}&page=1`).then(res => res.json()),
+    fetch(`${url}&page=2`).then(res => res.json()),
+  ]);
+
+  return {
+    results: [...(page1.results || []), ...(page2.results || [])],
+  };
+}
+
+
 export const endpoints = {
-  hero: `${BASE_URL}/movie/now_playing?api_key=${API_KEY}`,
+  hero: `${BASE_URL}/movie/popular?api_key=${API_KEY}`,
   trending: `${BASE_URL}/trending/all/day?api_key=${API_KEY}`,
   action: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=28&sort_by=popularity.desc`,
   adventure: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=12&sort_by=popularity.desc`,
@@ -31,11 +43,12 @@ export const endpoints = {
   topRated: `${BASE_URL}/movie/top_rated?api_key=${API_KEY}`,
 };
 
+
 const filterRecentMovies = (movie: Movie) => {
   if (!movie.release_date) return false;
   const releaseYear = new Date(movie.release_date).getFullYear();
   const currentYear = new Date().getFullYear();
-  return releaseYear >= currentYear - 7;
+  return releaseYear >= currentYear - 5;
 };
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
@@ -57,15 +70,15 @@ export default function Home() {
   const [activeIndex, setActiveIndex] = useState(2);
   const [torrentAvailableIds, setTorrentAvailableIds] = useState<Set<number>>(new Set());
 
-  const { data: heroData, isLoading: heroLoading } = useSWR<TMDBResponse<Movie>>(endpoints.hero, fetcher);
-  const { data: trendingData, isLoading: trendingLoading } = useSWR<TMDBResponse<Movie>>(endpoints.trending, fetcher);
-  const { data: actionData, isLoading: actionLoading } = useSWR<TMDBResponse<Movie>>(endpoints.action, fetcher);
-  const { data: adventureData, isLoading: adventureLoading } = useSWR<TMDBResponse<Movie>>(endpoints.adventure, fetcher);
-  const { data: kDramaData, isLoading: kDramaLoading } = useSWR<TMDBResponse<Movie>>(endpoints.kDrama, fetcher);
-  const { data: indianData, isLoading: indianLoading } = useSWR<TMDBResponse<Movie>>(endpoints.indian, fetcher);
-  const { data: animeData, isLoading: animeLoading } = useSWR<TMDBResponse<Movie>>(endpoints.anime, fetcher);
-  const { data: animationData, isLoading: animationLoading } = useSWR<TMDBResponse<Movie>>(endpoints.animation, fetcher);
-  const { data: topRatedData, isLoading: topRatedLoading } = useSWR<TMDBResponse<Movie>>(endpoints.topRated, fetcher);
+  const { data: heroData, isLoading: heroLoading } = useSWR<TMDBResponse<Movie>>(endpoints.hero, fetchPages);
+  const { data: trendingData, isLoading: trendingLoading } = useSWR<TMDBResponse<Movie>>(endpoints.trending, fetchPages);
+  const { data: actionData, isLoading: actionLoading } = useSWR<TMDBResponse<Movie>>(endpoints.action, fetchPages);
+  const { data: adventureData, isLoading: adventureLoading } = useSWR<TMDBResponse<Movie>>(endpoints.adventure, fetchPages);
+  const { data: kDramaData, isLoading: kDramaLoading } = useSWR<TMDBResponse<Movie>>(endpoints.kDrama, fetchPages);
+  const { data: indianData, isLoading: indianLoading } = useSWR<TMDBResponse<Movie>>(endpoints.indian, fetchPages);
+  const { data: animeData, isLoading: animeLoading } = useSWR<TMDBResponse<Movie>>(endpoints.anime, fetchPages);
+  const { data: animationData, isLoading: animationLoading } = useSWR<TMDBResponse<Movie>>(endpoints.animation, fetchPages);
+  const { data: topRatedData, isLoading: topRatedLoading } = useSWR<TMDBResponse<Movie>>(endpoints.topRated, fetchPages);
 
   const {
     data: liveMatches,
@@ -129,34 +142,34 @@ export default function Home() {
 
   // Memoized movie lists
   const trendingMovies = useMemo(
-    () => trendingData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => trendingData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [trendingData]
   );
   const actionMovies = useMemo(
-    () => actionData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => actionData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [actionData]
   );
   const adventureMovies = useMemo(
-    () => adventureData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => adventureData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [adventureData]
   );
   const kDramaMovies = useMemo(
-    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [kDramaData]
   );
   const indianMovies = useMemo(
-    () => indianData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => indianData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [indianData]
   );
   const animeMovies = useMemo(
-    () => animeData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => animeData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [animeData]
   );
   const animationMovies = useMemo(
-    () => animationData?.results.filter(filterRecentMovies).slice(0, 40) ?? [],
+    () => animationData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
     [animationData]
   );
-  const topRatedMovies = topRatedData?.results.slice(0, 40) ?? [];
+  const topRatedMovies = topRatedData?.results.slice(0, 60) ?? [];
 
   const liveMatchesToShow = uniqueMatches(liveMatches?.filter((m) => m.match_status === "live"));
   const engPRMatchesToShow = uniqueMatches(liveMatches?.filter((m) => m.league_name === "ENG PR"));

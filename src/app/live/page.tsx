@@ -15,7 +15,7 @@ const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 export const uniqueMatches = (matches: FootballMatch[] = []) => {
   const seen = new Set<string>();
   return matches.filter((m) => {
-    const key = `${m.home_team_name}-${m.away_team_name}-${m.league_name}-${m.match_time}`;
+    const key = `${m.home_team_logo}-${m.away_team_logo}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

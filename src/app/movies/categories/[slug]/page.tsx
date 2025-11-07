@@ -129,6 +129,28 @@ async function fetchCategory(config: CategoryFetcherConfig, page: number = 1): P
     return [];
   }
 }
+// Improved movie filtering function
+const filterMovies = (movies: Movie[]): Movie[] => {
+  if (!movies || !Array.isArray(movies)) return [];
+  
+  return movies
+    .filter(movie => {
+      if (!movie || typeof movie !== 'object') return false;
+      
+      // Handle different data structures
+      const mediaType = movie.media_type;
+      const hasMediaType = 'media_type' in movie;
+      
+      // If it has media_type, it must be 'movie', otherwise assume it's a movie
+      if (hasMediaType) {
+        return mediaType === 'movie';
+      }
+      
+      // If no media_type, check if it has movie-specific properties
+      return movie.title !== undefined; // Basic check for movie properties
+    })
+    .map(movie => movie as Movie);
+};
 
 export default function CategoryPage() {
   const { slug } = useParams() as { slug: string };
@@ -144,10 +166,13 @@ export default function CategoryPage() {
     toprated: `${BASE_URL}/movie/top_rated?api_key=${API_KEY}`,
   };
 
-  // MoviesPage categories (from CATEGORY_CONFIGS)
-  const moviesPageCategories: Record<string, CategoryFetcherConfig> = Object.fromEntries(
-    CATEGORY_CONFIGS.map((cfg) => [cfg.key.toLowerCase(), cfg.fetcherConfig as CategoryFetcherConfig])
-  );
+  // MoviesPage categories
+  const moviesPageCategories: Record<string, CategoryFetcherConfig> = useMemo(() => {
+    if (!CATEGORY_CONFIGS) return {};
+    return Object.fromEntries(
+      CATEGORY_CONFIGS.map((cfg) => [cfg.key.toLowerCase(), cfg.fetcherConfig])
+    );
+  }, []);
 
   const isHomeCategory = slug.toLowerCase() in homeCategoryEndpoints;
   const isMoviesPageCategory = slug.toLowerCase() in moviesPageCategories;
@@ -155,52 +180,76 @@ export default function CategoryPage() {
   const selectedEndpoint = isHomeCategory ? homeCategoryEndpoints[slug.toLowerCase()] : null;
   const selectedConfig = isMoviesPageCategory ? moviesPageCategories[slug.toLowerCase()] : null;
 
-  // Fetch data
-  const { data: homeData, error: homeError, isLoading: homeLoading } = useSWR<TMDBMovieResponse[]>(
-    selectedEndpoint
+  // Fetch home category data
+  const { 
+    data: homeData, 
+    error: homeError, 
+    isLoading: homeLoading 
+  } = useSWR(
+    selectedEndpoint 
       ? [
           `${selectedEndpoint}&page=1`,
-          `${selectedEndpoint}&page=2`,
+          `${selectedEndpoint}&page=2`, 
           `${selectedEndpoint}&page=3`,
         ]
       : null,
-    (...urls: string[]) => Promise.all(urls.map((u) => tmdbFetch<TMDBMovieResponse>(u)))
+    (urls: string[]) => Promise.all(urls.map(url => fetcher(url))),
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: true,
+    }
   );
 
-  const { data: moviesPageData, error: moviesPageError, isLoading: moviesPageLoading } = useSWR<Movie[][]>(
-    selectedConfig
-      ? [
-          `movies-page-${slug}-page-1`,
-          `movies-page-${slug}-page-2`,
-          `movies-page-${slug}-page-3`,
-        ]
+  // Fetch movies page category data
+  const { 
+    data: moviesPageData, 
+    error: moviesPageError, 
+    isLoading: moviesPageLoading 
+  } = useSWR(
+    selectedConfig 
+      ? `movies-page-${slug}` 
       : null,
-    () =>
-      Promise.all([
-        fetchCategory(selectedConfig!, 1),
-        fetchCategory(selectedConfig!, 2),
-        fetchCategory(selectedConfig!, 3),
-      ])
+    async () => {
+      try {
+        const pages = await Promise.all([
+          fetchCategory(selectedConfig!, 1),
+          fetchCategory(selectedConfig!, 2),
+          fetchCategory(selectedConfig!, 3),
+        ]);
+        return pages;
+      } catch (error) {
+        console.error('Error fetching movies page data:', error);
+        return [[], [], []];
+      }
+    },
+    {
+      revalidateOnFocus: false,
+      shouldRetryOnError: true,
+    }
   );
 
   const isLoading = isHomeCategory ? homeLoading : moviesPageLoading;
   const error = isHomeCategory ? homeError : moviesPageError;
 
   const movies = useMemo(() => {
+  
+
     if (isHomeCategory && homeData) {
-      const allMovies = homeData.flatMap((page) => page.results ?? []);
-      const filtered = allMovies.filter((m) => (!("media_type" in m) || m.media_type === "movie"));
-      const unique = Array.from(new Map(filtered.map((m) => [m.id, m])).values());
-      return unique.slice(0, 56);
+      const allMovies = homeData.flatMap((page: TMDBMovieResponse) => page.results || []);
+      
+      const filtered = filterMovies(allMovies);
+      const unique = Array.from(new Map(filtered.map(m => [m.id, m])).values());
+      const result = unique.slice(0, 56);
+      return result;
     }
 
     if (isMoviesPageCategory && moviesPageData) {
       const allMovies = moviesPageData.flat();
-      const filtered = allMovies.filter((m) => m && (!("media_type" in m) || m.media_type === "movie"));
-      const unique = Array.from(new Map(filtered.map((m) => [m.id, m])).values());
-      return unique.slice(0, 56);
+      const filtered = filterMovies(allMovies);
+      const unique = Array.from(new Map(filtered.map(m => [m.id, m])).values());
+      const result = unique.slice(0, 56);
+      return result;
     }
-
     return [];
   }, [homeData, moviesPageData, isHomeCategory, isMoviesPageCategory]);
 
@@ -212,18 +261,27 @@ export default function CategoryPage() {
     );
   }
 
-  if (error || (!isHomeCategory && !isMoviesPageCategory)) {
+  if (error) {
+    console.error('Category page error:', error);
     return (
       <div className="flex justify-center items-center h-[60vh]">
-        <div>Category not found or failed to load</div>
+        <div>Error loading category: {error.message}</div>
       </div>
     );
   }
 
-  if (!movies.length) {
+  if (!isHomeCategory && !isMoviesPageCategory) {
     return (
-      <div className="flex justify-center items-center h-[60vh]">
-        <div>No movies found</div>
+      <div className="flex justify-center items-center h-[60vh] text-white/10">
+        <div>Category not found</div>
+      </div>
+    );
+  }
+
+  if (!movies.length && !isLoading) {
+    return (
+      <div className="flex justify-center items-center h-[60vh] text-white/10">
+        <div>No movies found for this category</div>
       </div>
     );
   }
@@ -231,7 +289,7 @@ export default function CategoryPage() {
   const formatHeader = () => {
     const categoryMap: Record<string, string> = {
       trending: "Trending",
-      action: "Action",
+      action: "Action", 
       adventure: "Adventure",
       kdrama: "K-Drama",
       indian: "Bollywood",
@@ -262,7 +320,6 @@ export default function CategoryPage() {
           </div>
         ))}
       </div>
-
     </section>
   );
 }
