@@ -42,7 +42,7 @@ interface AdConfig {
 const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl: "https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
-  adFrequency: 42, 
+  adFrequency: 20, 
   skipOffset: 10
 };
 
@@ -61,86 +61,32 @@ const groupServers = (servers: StreamServer[]): GroupedStreams => {
   return grouped;
 };
 
-// --- VAST Parser Class (UPDATED with Media Validation) ---
+// --- VAST Parser Class (UPDATED) ---
 class VASTParser {
   static async parse(vastUrl: string): Promise<{
-    mediaUrl: string | null;
+    mediaUrl: string;
     duration: number;
     skipOffset: number;
     impressions: string[];
+    // NEW: Click tracking fields
     clickThrough: string | null;
     clickTracking: string[];
-    error: string | null;
   } | null> {
     try {
-      console.log('🔄 Fetching VAST from:', vastUrl);
       const response = await fetch(vastUrl);
-      
-      if (!response.ok) {
-        throw new Error(`VAST fetch failed: ${response.status}`);
-      }
-      
       const xmlText = await response.text();
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-      // Check for VAST errors
-      const errorElems = xmlDoc.querySelectorAll("Error");
-      const vastErrors = Array.from(errorElems)
-        .map(e => e.textContent)
-        .filter(Boolean) as string[];
-      
-      if (vastErrors.length > 0) {
-        console.warn('VAST contains errors:', vastErrors);
-      }
-
-      // Get all media files and validate them
       const mediaFiles = Array.from(xmlDoc.querySelectorAll("MediaFile"));
-      console.log(`📹 Found ${mediaFiles.length} media files in VAST`);
+      const webmMedia = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm');
+      const mp4Media = mediaFiles.find(mf => mf.getAttribute('type') === 'video/webm' && mf.getAttribute('delivery') === 'progressive');
+      const mediaFile = webmMedia || mp4Media || mediaFiles[0];
+      const mediaUrl = mediaFile?.textContent?.trim();
 
-      // Try to find a working media URL
-      let mediaUrl: string | null = null;
-      
-      // Priority order: webm -> mp4 -> flv -> any available
-      const priorityTypes = [
-        { type: 'video/webm', delivery: 'progressive' },
-        { type: 'video/mp4', delivery: 'progressive' },
-        { type: 'video/webm', delivery: null },
-        { type: 'video/mp4', delivery: null },
-        { type: 'video/flv', delivery: 'progressive' },
-        { type: '*', delivery: null } // fallback to any
-      ];
-
-      for (const { type, delivery } of priorityTypes) {
-        const mediaFile = mediaFiles.find(mf => {
-          const matchesType = type === '*' || mf.getAttribute('type') === type;
-          const matchesDelivery = !delivery || mf.getAttribute('delivery') === delivery;
-          return matchesType && matchesDelivery;
-        });
-        
-        if (mediaFile) {
-          const candidateUrl = mediaFile.textContent?.trim();
-          if (candidateUrl) {
-            // Test if the media URL is accessible
-            const isAccessible = await this.testMediaUrl(candidateUrl);
-            if (isAccessible) {
-              mediaUrl = candidateUrl;
-              console.log(`✅ Using media URL: ${candidateUrl.substring(0, 100)}...`);
-              break;
-            } else {
-              console.warn(`❌ Media URL not accessible: ${candidateUrl.substring(0, 100)}...`);
-            }
-          }
-        }
-      }
-
-      // If no working media URL found, try the first one without validation as fallback
-      if (!mediaUrl && mediaFiles.length > 0) {
-        const fallbackUrl = mediaFiles[0]?.textContent?.trim();
-        if (fallbackUrl) {
-          mediaUrl = fallbackUrl;
-          console.warn(`⚠️ Using unvalidated fallback media URL: ${fallbackUrl.substring(0, 100)}...`);
-        }
+      if (!mediaUrl) {
+         console.warn("No compatible MediaFile found in VAST inline response.");
+         return null;
       }
 
       // Duration
@@ -157,45 +103,30 @@ class VASTParser {
       // Impressions
       const impressionElems = xmlDoc.querySelectorAll("Impression");
       const impressions = Array.from(impressionElems)
-        .map((e) => e.textContent?.trim())
+        .map((e) => e.textContent)
         .filter(Boolean) as string[];
 
-      // Click Tracking
+      // --- NEW: Click Tracking ---
       const clickThroughElem = xmlDoc.querySelector("ClickThrough");
-      const clickThrough = clickThroughElem?.textContent?.trim() || null;
+      const clickThrough = clickThroughElem?.textContent || null;
 
       const clickTrackingElems = xmlDoc.querySelectorAll("ClickTracking");
       const clickTracking = Array.from(clickTrackingElems)
-        .map((e) => e.textContent?.trim())
+        .map((e) => e.textContent)
         .filter(Boolean) as string[];
+      // --- END NEW ---
 
       return { 
         mediaUrl, 
         duration, 
         skipOffset, 
         impressions,
-        clickThrough,
-        clickTracking,
-        error: mediaUrl ? null : 'No working media URLs found'
+        clickThrough, // RETURN NEW FIELD
+        clickTracking // RETURN NEW FIELD
       };
     } catch (error) {
       console.warn("VAST parsing error:", error);
       return null;
-    }
-  }
-
-  static async testMediaUrl(url: string): Promise<boolean> {
-    try {
-      const response = await fetch(url, {
-        method: 'HEAD',
-        headers: {
-          'Range': 'bytes=0-1', // Just check first few bytes
-        },
-      });
-      return response.ok;
-    } catch (error) {
-      console.warn(`Media URL test failed for ${url.substring(0, 100)}:`, error);
-      return false;
     }
   }
 
@@ -206,15 +137,10 @@ class VASTParser {
         return parseInt(parts[0]) * 3600 + parseInt(parts[1]) * 60 + parseInt(parts[2]);
       }
     }
-    
-    // Handle percentage-based skipoffset
-    if (duration.includes("%")) {
-      return parseFloat(duration.replace('%', '')) || 5;
-    }
-    
     return parseInt(duration) || 30;
   }
 }
+
 // --- useHlsPlayer Hook (FIXED HLS ERROR HANDLING) ---
 const useHlsPlayer = (videoRef: React.RefObject<HTMLVideoElement | null>, streamUrl: string | undefined) => {
   const hlsRef = useRef<Hls | null>(null);

@@ -86,9 +86,9 @@ export default function LineMovieList({
           </div>
         )}
         {!loading &&
-          moviesList.map((movie) => (
+          moviesList.map((movie, index) => (
             <Link
-              key={movie.id}
+              key={`${movie.id}-${index}`} 
               className="inline-block"
               href={`/details/${movie.id}`}
             >

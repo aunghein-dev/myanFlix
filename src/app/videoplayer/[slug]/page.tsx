@@ -43,7 +43,7 @@ const defaultAdConfig: AdConfig = {
   enabled: true,
   vastUrl:
 "https://euphoricreplacement.com/d.mrFMzld/GqNFvQZvGcUY/VeLmr9iucZ/UPldkUP/T/YI2/O/TFMfx/NwTBYBtpNKjUYk5xMBzREF1RNmy/ZYs/a_WH1XpCdyDr0/xg",
-  adFrequency: 50,
+  adFrequency: 20,
   skipOffset: 10,
   preRoll: true,
   midRoll: true,
