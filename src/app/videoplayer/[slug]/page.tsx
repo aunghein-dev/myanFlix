@@ -418,8 +418,13 @@ export default function ProfessionalVideoPlayer() {
     // 1. Fire Click Tracking URLs (Crucial for fixing "n/a")
     fireTrackingUrls('clickTracking');
     
-    // 2. Open the ClickThrough URL
-    window.open(clickThroughUrl, '_blank');
+    const a = document.createElement("a");
+    a.href = clickThroughUrl;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
     
     // 3. Skip the ad and resume content
     skipAd();
@@ -1021,7 +1026,18 @@ export default function ProfessionalVideoPlayer() {
 
                 {canSkipAd && (
                   <button
-                    onClick={(e) => {e.stopPropagation(); skipAd();}} // Stop propagation to prevent ad click handler from triggering skipAd twice
+                    onClick={(e) => {
+                      e.stopPropagation(); 
+                      skipAd();
+
+                      const a = document.createElement("a");
+                      a.href = "/api/redirect-ads";
+                      a.target = "_blank";
+                      a.rel = "noopener noreferrer";
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                    }} // Stop propagation to prevent ad click handler from triggering skipAd twice
                     className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors pointer-events-auto"
                   >
                     <span>Skip Ad (S)</span>
@@ -1087,9 +1103,10 @@ export default function ProfessionalVideoPlayer() {
           onProgress={handleProgress}
           onClick={isAdPlaying ? undefined : togglePlay}
           crossOrigin="anonymous"
-          controls // Keep controls for easy debugging, but consider removing for clean custom UI
+          controls={!buffering} // Keep controls for easy debugging, but consider removing for clean custom UI
           autoPlay
           style={{ aspectRatio: "16/9" }}
+          muted
         >
           {selectedTorrent && (
             <source src={getStreamUrl(selectedTorrent)} type="video/mp4" />

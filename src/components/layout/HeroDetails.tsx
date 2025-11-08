@@ -37,7 +37,7 @@ export default function HeroDetails({ activeMovie, hasTorrent }: { activeMovie: 
         {/* Buttons Section */}
           <div className="mt-1.5 min-h-[42px] flex flex-row items-center justify-start">
             {loading ? (
-              <Spinner className="text-white ml-[0.5px]" /> 
+              <Spinner className="text-white ml-[0.5px]" size={25}/> 
             ) : hasTorrent ? (
               <div className="flex flex-row items-center gap-3">
                 <Link

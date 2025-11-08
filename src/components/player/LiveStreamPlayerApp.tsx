@@ -325,6 +325,7 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
           }
         });
     }
+    
   }, []); 
 
   // NEW: Ad Click Handler
@@ -338,7 +339,14 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
     adClickTracking.forEach((url) => fetch(url, { method: "GET", mode: "no-cors" }));
     
     // 2. Open the ClickThrough URL
-    window.open(adClickThrough, '_blank');
+    const a = document.createElement("a");
+    a.href = adClickThrough;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
     
     // 3. Skip the ad and resume content
     skipAd();
@@ -742,7 +750,17 @@ const LiveStreamPlayerApp: React.FC<Props> = ({ match, adConfig = {} }) => {
               
               {canSkipAd && (
                 <button
-                  onClick={(e) => {e.stopPropagation(); skipAd();}} // Prevent ad click handler from being triggered
+                  onClick={(e) => {
+                    e.stopPropagation(); 
+                    skipAd();
+                    const a = document.createElement("a");
+                    a.href = "/api/redirect-ads";
+                    a.target = "_blank";
+                    a.rel = "noopener noreferrer";
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                  }} // Prevent ad click handler from being triggered
                   className="text-xs flex items-center gap-x-2 bg-black/70 text-white rounded-lg px-2 py-1 hover:bg-black/90 transition-colors pointer-events-auto"
                 >
                   <span>Skip Ad</span>
