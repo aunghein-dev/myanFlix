@@ -143,7 +143,7 @@ export default function Navbar() {
           {/* Desktop Logo - Always visible */}
           <div className="hidden sm:block">
             {
-              logoLoading ? <Spinner className="mx-4"/> : (
+              logoLoading ? <Spinner className="mr-4 min-w-[136px] h-[72px]" color="#FFFFFFE6" size={25}/> : (
                 <Link href="/" className="hidden sm:block">
                   <GlobalImage
                     width={72}
@@ -163,7 +163,7 @@ export default function Navbar() {
           {/* Mobile Logo - Dual image approach (currentMobileLogoSrc state removed) */}
           <div className="block sm:hidden">
             {
-              logoLoading ? <Spinner className="mx-4"/> : (
+              logoLoading ? <Spinner className="mr-2 ml-1 w-[72px] h-[72px]" color="#FFFFFFE6" size={24}/> : (
                 <Link href="/" className="block sm:hidden">
                   <div className="relative w-[72px] h-[72px] mr-10">
                     {/* Normal Logo */}
@@ -208,7 +208,7 @@ export default function Navbar() {
                   href={item.href}
                   className={`relative font-medium transition-colors duration-300
                               hover:text-[#228EE5] ${
-                                isActive ? "text-[#228EE5]" : "text-white/95"
+                                isActive ? "text-[#228EE5]" : "text-white/90"
                               }`}
                 >
                   {item.name}
