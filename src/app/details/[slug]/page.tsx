@@ -131,7 +131,6 @@ export default function Details() {
 
       const shortenData = await shortenRes.json();
       const adflyUrl = shortenData.shortUrl;
-      console.log("✅ AdFly Short URL:", adflyUrl);
 
       const a = document.createElement("a");
       a.href = adflyUrl;
@@ -156,7 +155,8 @@ export default function Details() {
       loadMovieData();
     }
   }, [selectedMovie, loadMovieData]);
-
+  
+  
   return (
     <section>
       <div className="relative h-[500px] select-none overflow-hidden">
@@ -164,7 +164,9 @@ export default function Details() {
         <div
           className="absolute inset-0 bg-cover bg-center transition-all duration-500"
           style={{
-            backgroundImage: `url(https://image.tmdb.org/t/p/original${selectedMovie?.backdrop_path})`,
+            backgroundImage: selectedMovie?.backdrop_path 
+              ? `url(/api/tmdb-image/original${selectedMovie.backdrop_path})`
+              : 'none',
           }}
         />
         <div className={`absolute left-0 top-0 w-[60px] h-full z-[10] ${isLoading ? "bg-transparent" : "bg-gradient-to-r"} from-black/10 to-transparent`}/>

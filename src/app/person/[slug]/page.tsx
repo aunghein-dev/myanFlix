@@ -117,7 +117,7 @@ export default function PersonPage() {
             <GlobalImage
               width={130}
               height={130}
-              src={`https://image.tmdb.org/t/p/w185${personData.profile_path}`}
+              src={`/api/tmdb-image/w185/${personData.profile_path}`}
               alt={personData?.name || "Person photo"}
               className="w-34 h-34 rounded-full object-cover object-center"
             />

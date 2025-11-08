@@ -958,7 +958,6 @@ export default function ProfessionalVideoPlayer() {
       if (!shortenData.shortUrl) throw new Error(shortenData.error || "Failed to shorten URL");
 
       const adflyUrl = shortenData.shortUrl;
-      console.log("✅ AdFly Short URL:", adflyUrl);
 
       const a = document.createElement("a");
       a.href = adflyUrl;

@@ -48,7 +48,7 @@ export default function MovieFullCard({ movie, rank }: { movie: Movie, rank: num
       <div className="relative max-w-28 min-w-28 sm:max-w-40 sm:min-w-40 h-40 sm:h-56 select-none overflow-hidden rounded-lg will-change-transform">
         <GlobalImage 
           fill
-          src={`https://image.tmdb.org/t/p/w500${movie.poster_path}`}
+          src={`/api/tmdb-image/w500/${movie.poster_path}`}
           alt={movie.title}
           className="w-full h-full object-cover shadow-lg rounded-lg transition-transform duration-200 ease-out group-hover:bg-black/20"
         />

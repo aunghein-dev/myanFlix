@@ -11,6 +11,7 @@ interface GlobalImageProps {
   height?: number;
   fill?: boolean;
   unoptimized?: boolean;
+  onLoadingComplete?: () => void; 
 }
 
 export default function GlobalImage({
@@ -21,12 +22,12 @@ export default function GlobalImage({
   height,
   fill = false,
   unoptimized = true,
+  onLoadingComplete,
 }: GlobalImageProps) {
   const [currentSrc, setCurrentSrc] = useState(src);
   const [retryCount, setRetryCount] = useState(0);
   const MAX_RETRIES = 2;
 
-  // Reset when src prop changes
   useEffect(() => {
     setCurrentSrc(src);
     setRetryCount(0);
@@ -34,11 +35,25 @@ export default function GlobalImage({
 
   const handleError = () => {
     if (retryCount < MAX_RETRIES) {
-      setRetryCount((c) => c + 1);
-      setCurrentSrc(`${src}?retry=${Date.now()}`);
+      const newRetryCount = retryCount + 1;
+      setRetryCount(newRetryCount);
+      
+      // Fallback for TMDB proxy
+      if (src.includes('/api/tmdb-image/')) {
+        const tmdbPath = src.replace('/api/tmdb-image/', '');
+        const directUrl = `https://image.tmdb.org/t/p/${tmdbPath}`;
+        setCurrentSrc(directUrl);
+      } else {
+        const separator = src.includes('?') ? '&' : '?';
+        setCurrentSrc(`${src}${separator}retry=${Date.now()}`);
+      }
     } else {
       setCurrentSrc("/no-image.png");
     }
+  };
+
+  const handleLoadComplete = () => {
+    if (onLoadingComplete) onLoadingComplete();
   };
 
   return fill ? (
@@ -48,6 +63,7 @@ export default function GlobalImage({
       src={currentSrc}
       alt={alt}
       onError={handleError}
+      onLoadingComplete={handleLoadComplete}
       className={className}
     />
   ) : (
@@ -58,6 +74,7 @@ export default function GlobalImage({
       src={currentSrc}
       alt={alt}
       onError={handleError}
+      onLoadingComplete={handleLoadComplete}
       className={className}
     />
   );

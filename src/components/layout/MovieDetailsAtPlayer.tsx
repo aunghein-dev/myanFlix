@@ -20,21 +20,17 @@ export interface MovieDetailsAtPlayerProps {
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
   const handleDownloadClick = () => {
-    // Open AdFly page
+    /*
     const a = document.createElement("a");
     a.href = "/api/redirect-ads"; // should return the AdFly shortened URL
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     document.body.appendChild(a);
     a.click();
-    a.remove();
-
-    // Start download after a short delay (optional)
-    setTimeout(() => {
-      if (onDownload) {
-        onDownload();
-      }
-    }, 4000); 
+    a.remove();*/
+    if (onDownload) {
+      onDownload();
+    }
   };
 
 

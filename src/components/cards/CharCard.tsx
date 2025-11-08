@@ -10,7 +10,7 @@ export default function CharCard({ person }: { person: Person }) {
         width={100}
         height={100}
         key={person.id}
-        src={`https://image.tmdb.org/t/p/w185${person.profile_path}`}
+        src={`/api/tmdb-image/w185/${person.profile_path}`}
         alt={person.name}
         className="max-w-25 h-25 min-w-25 rounded-full object-cover mb-2 transition-transform duration-200"
       />

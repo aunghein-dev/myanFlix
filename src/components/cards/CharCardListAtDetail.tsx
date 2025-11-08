@@ -65,7 +65,7 @@ export default function CharCardListAtDetail({
               <GlobalImage
                 width={96}
                 height={96}
-                src={`https://image.tmdb.org/t/p/w200${member.profile_path}`}
+                src={`/api/tmdb-image/w200/${member.profile_path}`}
                 alt={member.name}
                 className="w-24 h-24 rounded-full object-cover transition-transform duration-200"
               />

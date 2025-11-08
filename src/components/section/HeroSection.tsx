@@ -24,7 +24,9 @@ export default function HeroSection({ movies, activeIndex, setActiveIndex, activ
           <div
             className="absolute inset-0 bg-cover bg-center transition-all duration-500"
             style={{
-              backgroundImage: `url(https://image.tmdb.org/t/p/original${activeMovie.backdrop_path})`,
+              backgroundImage: activeMovie?.backdrop_path 
+                  ? `url(/api/tmdb-image/original${activeMovie.backdrop_path})`
+                  : 'none',
             }}
           />
           <div className="absolute left-0 top-0 w-[60px] h-full bg-gradient-to-r from-background/10 to-transparent"></div>

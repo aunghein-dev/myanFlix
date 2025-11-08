@@ -48,7 +48,7 @@ const filterRecentMovies = (movie: Movie) => {
   if (!movie.release_date) return false;
   const releaseYear = new Date(movie.release_date).getFullYear();
   const currentYear = new Date().getFullYear();
-  return releaseYear >= currentYear - 5;
+  return releaseYear >= currentYear - 3;
 };
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";

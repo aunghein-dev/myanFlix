@@ -10,6 +10,7 @@ import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
 import SearchModal from "@/components/model/SearchModal";
 import GlobalImage from "@/components/atoms/GlobalImage";
+import Spinner from "@/components/atoms/Spinner";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 
@@ -39,7 +40,7 @@ export default function Navbar() {
   const [result, setResult] = useState<MovieSearchResult[]>([]);
   const [liveResult, setLiveResult] = useState<FootballMatch[]>([]);
   // Removed currentMobileLogoSrc state as it's not needed with the dual image approach
-
+  const [logoLoading, setLogoLoading] = useState(true);
   const searchApiUrl = `https://api.themoviedb.org/3/search/movie?api_key=${API_KEY}&query=`;
 
 
@@ -110,6 +111,13 @@ export default function Navbar() {
     fetchSuggestions // Now a stable function via useCallback
 ]);
 
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLogoLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  },[]);
+
   return (
     <div
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
@@ -133,44 +141,59 @@ export default function Navbar() {
       <div className="-my-2 flex items-center justify-between w-full">
         <div className="flex items-center">
           {/* Desktop Logo - Always visible */}
-          <Link href="/" className="hidden sm:block">
-            <GlobalImage
-              width={72}
-              height={72}
-              unoptimized
-              src="/logo.png"
-              alt="App logo"
-              className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px] transition-all duration-300"
-            />
-          </Link>
+          <div className="hidden sm:block">
+            {
+              logoLoading ? <Spinner className="mx-4"/> : (
+                <Link href="/" className="hidden sm:block">
+                  <GlobalImage
+                    width={72}
+                    height={72}
+                    unoptimized
+                    src="/logo.png"
+                    alt="App logo"
+                    className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px] transition-all duration-300"
+                  />
+                </Link>
+              )
+            }
+          </div>
+          
+          
           
           {/* Mobile Logo - Dual image approach (currentMobileLogoSrc state removed) */}
-            <Link href="/" className="block sm:hidden">
-              <div className="relative w-[72px] h-[72px] mr-10">
-                {/* Normal Logo */}
-                <GlobalImage
-                  width={72}
-                  height={72}
-                  unoptimized
-                  src="/logo.png"
-                  alt="App logo"
-                  className={`object-contain scale-200 select-none ml-10 absolute top-0 left-0 transition-all duration-300 ease-in-out ${
-                    focused ? "opacity-0 scale-95" : "opacity-100 scale-100"
-                  }`}
-                />
-                {/* Focused Logo */}
-                <GlobalImage
-                  width={60}
-                  height={60}
-                  unoptimized
-                  src="/logo-only.png"
-                  alt="App logo"
-                  className={`object-contain scale-200 select-none ml-1 absolute top-1 left-0 transition-all duration-300 ease-in-out ${
-                    focused ? "opacity-100 scale-100" : "opacity-0 scale-95"
-                  }`}
-                />
-              </div>
-            </Link>
+          <div className="block sm:hidden">
+            {
+              logoLoading ? <Spinner className="mx-4"/> : (
+                <Link href="/" className="block sm:hidden">
+                  <div className="relative w-[72px] h-[72px] mr-10">
+                    {/* Normal Logo */}
+                    <GlobalImage
+                      width={72}
+                      height={72}
+                      unoptimized
+                      src="/logo.png"
+                      alt="App logo"
+                      className={`object-contain scale-200 select-none ml-10 absolute top-0 left-0 transition-all duration-300 ease-in-out ${
+                        focused ? "opacity-0 scale-95" : "opacity-100 scale-100"
+                      }`}
+                    />
+                    {/* Focused Logo */}
+                    <GlobalImage
+                      width={60}
+                      height={60}
+                      unoptimized
+                      src="/logo-only.png"
+                      alt="App logo"
+                      className={`object-contain scale-200 select-none ml-1 absolute top-1 left-0 transition-all duration-300 ease-in-out ${
+                        focused ? "opacity-100 scale-100" : "opacity-0 scale-95"
+                      }`}
+                    />
+                  </div>
+                </Link>
+              ) 
+            }
+          </div>
+            
           
           {/* Navigation Links */}
           <div className="ml-6 sm:flex space-x-6 hidden">

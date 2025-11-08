@@ -14,7 +14,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
         <GlobalImage
           fill
           key={movie.id}
-          src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+          src={`/api/tmdb-image/w300/${movie.poster_path}`}
           alt={movie.title || "Movie poster"}
           className="w-full h-full object-cover shadow-lg rounded-lg transition-transform duration-200 ease-out"
         />

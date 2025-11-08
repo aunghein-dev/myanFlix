@@ -32,7 +32,7 @@ export default function SearchModal(props : Props) {
                       width={80}
                       height={80}
                       unoptimized
-                      src={`https://image.tmdb.org/t/p/w185${movie.poster_path}`}
+                      src={`/api/tmdb-image/w185/${movie.poster_path}`}
                       alt={movie.title}
                       className="min-w-20 max-h-18 object-cover rounded-lg object-center select-none"
                     />

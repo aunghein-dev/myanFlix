@@ -19,21 +19,19 @@ export default function DetailsInfoOnHero(props : Props) {
   const {selectedMovie, loading, handleDownloadVideo, notAvailable, generatingLoading} = props;
 
   const handleDownloadClick = () => {
-    // Open AdFly page
+
+    /*
     const a = document.createElement("a");
     a.href = "/api/redirect-ads"; // should return the AdFly shortened URL
     a.target = "_blank";
     a.rel = "noopener noreferrer";
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    a.remove();*/
 
-    // Start download after a short delay (optional)
-    setTimeout(() => {
-      if (handleDownloadVideo) {
-        handleDownloadVideo();
-      }
-    }, 4000); 
+    if (handleDownloadVideo) {
+      handleDownloadVideo();
+    } 
   };
 
 
@@ -51,24 +49,30 @@ export default function DetailsInfoOnHero(props : Props) {
           </div>
          
           <div className="flex flex-row items-center gap-3">
-            <button
+            <Link
+              target="_blank"
+              href="/api/redirect-ads"
               className="bg-black p-2 border border-[#228EE5]/60 text-white flex 
               justify-center flex-row items-center mt-4 rounded-full hover:bg-[#228EE5] transition duration-300 ease-in-out"
             >
               <HiOutlineBookmark className="inline h-5 w-5 text-white"/>
-            </button>
-            <button
+            </Link>
+            <Link
+              target="_blank"
+              href="/api/redirect-ads"
               className="bg-black p-2 border border-[#228EE5]/70 text-white flex 
                 justify-center flex-row items-center mt-4 rounded-full hover:bg-[#228EE5] transition duration-300 ease-in-out"
             >
               <GoThumbsup className="inline h-5 w-5 text-white"/>
-            </button>
-              <button
-              className="bg-black p-2 border border-[#228EE5]/70 text-white flex 
-                justify-center flex-row items-center mt-4 rounded-full hover:bg-[#228EE5] transition duration-300 ease-in-out"
+            </Link>
+              <Link
+                target="_blank"
+                href="/api/redirect-ads"
+                className="bg-black p-2 border border-[#228EE5]/70 text-white flex 
+                  justify-center flex-row items-center mt-4 rounded-full hover:bg-[#228EE5] transition duration-300 ease-in-out"
             >
               <GoThumbsdown className="inline h-5 w-5 text-white"/>
-            </button>
+            </Link>
           </div>
         </div>
       </div>

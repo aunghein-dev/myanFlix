@@ -25,7 +25,7 @@ export default function MovieCarousel({ movies, activeIndex, setActiveIndex }: {
                       width={20}
                       height={22}
                       unoptimized
-                      src={`https://image.tmdb.org/t/p/w300${movie.poster_path}`}
+                      src={`/api/tmdb-image/w300/${movie.poster_path}`}
                       alt={movie.title}
                       className={`
                         rounded-lg shadow-2xl transition-all duration-300

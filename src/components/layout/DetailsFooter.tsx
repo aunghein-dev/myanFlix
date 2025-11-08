@@ -60,7 +60,7 @@ export default function DetailsFooter({
                   width={0}
                   height={0}
                   key={index}
-                  src={`https://image.tmdb.org/t/p/w300${img.file_path}`}
+                  src={`/api/tmdb-image/w300/${img.file_path}`}
                   alt={`Screenshot ${index + 1}`}
                   className="w-1/3 rounded-md object-cover max-w-[140px]"
                 />
@@ -107,7 +107,7 @@ export default function DetailsFooter({
                       width={24}
                       height={24}
                       key={director.id}
-                      src={`https://image.tmdb.org/t/p/w200${director.profile_path}`}
+                      src={`/api/tmdb-image/w200/${director.profile_path}`}
                       alt={director.name}
                       className="w-24 h-24 rounded-full object-cover transition-transform duration-200"
                     />
