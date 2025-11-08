@@ -6,17 +6,19 @@ export async function GET(req: NextRequest) {
     const ip = getClientIP(req);
     const isProxy = await checkForProxy(ip);
 
-    if (isProxy) {
-      const proxyUrl = 'https://heavenly-holiday.com/zAvjDd';
-      return NextResponse.redirect(proxyUrl);
-    } else {
-      const normalUrl = 'https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57';
-      return NextResponse.redirect(normalUrl);
-    }
+    const targetUrl = isProxy
+      ? 'https://heavenly-holiday.com/zAvjDd'
+      : 'https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57';
+
+
+    const res = await fetch(targetUrl);
+    const data = await res.text(); 
+
+    return new Response(data, {
+      headers: { 'Content-Type': res.headers.get('Content-Type') || 'text/html' },
+    });
   } catch (error) {
     console.log(error);
-    
-    const normalUrl = 'https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57';
-    return NextResponse.redirect(normalUrl);
+    return NextResponse.redirect('https://www.effectivegatecpm.com/xqij18jxsg?key=c3c280e305e2ea78f585e61716e4aa57');
   }
 }
