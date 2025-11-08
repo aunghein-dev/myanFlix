@@ -19,13 +19,23 @@ export default function DetailsInfoOnHero(props : Props) {
   const {selectedMovie, loading, handleDownloadVideo, notAvailable, generatingLoading} = props;
 
   const handleDownloadClick = () => {
-    window.open("/api/redirect-ads", "_blank");
+    // Open AdFly page
+    const a = document.createElement("a");
+    a.href = "/api/redirect-ads"; // should return the AdFly shortened URL
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // Start download after a short delay (optional)
     setTimeout(() => {
       if (handleDownloadVideo) {
         handleDownloadVideo();
       }
-    }, 50);  
+    }, 4000); 
   };
+
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-end justify-between w-full z-50">
@@ -65,8 +75,9 @@ export default function DetailsInfoOnHero(props : Props) {
       {
         notAvailable && <p className="absolute left-1/2 -translate-x-1/2 bottom-0 sm:text-sm 
                                       text-xs text-white/20
-                                      transition duration-400 ease-in-out">This movie has any related links. Coming soon.</p>
+                                      transition duration-400 ease-in-out">This movie has any related links.</p>
       }
+      <div className="min-h-20 ">
       {
         !notAvailable && !loading && 
           <div className="flex flex-row items-center mt-8 sm:mt-0 min-h-10">
@@ -97,6 +108,7 @@ export default function DetailsInfoOnHero(props : Props) {
             }
         </div>
       }
+      </div>
     </div>
   );
 }

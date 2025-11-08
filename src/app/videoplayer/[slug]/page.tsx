@@ -250,6 +250,7 @@ export default function ProfessionalVideoPlayer() {
   const playTimeRef = useRef(0);
   const lastAdTimeRef = useRef(0);
   const hasPlayedPreRollRef = useRef(false);
+  const [generatingLoading, setGeneratingLoading] = useState(false);
 
   const loadMovieData = useCallback(async () => {
     try {
@@ -725,30 +726,35 @@ export default function ProfessionalVideoPlayer() {
       document.head.appendChild(style);
     }
 
-    const baseSize = Math.max(12, Math.min(38));
-    const responsiveSize = isFullscreen
-      ? `clamp(${baseSize}px, 3vw, ${baseSize * 1.5}px)`
-      : `${baseSize}px`;
+    const fontSize = isFullscreen ? "30px" : "22px";
 
     style.textContent = `
       video::cue {
-        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif !important; 
-        bottom: 10% !important; 
-        top: auto !important;
-        color: #FFFFFF !important;
-        font-size: ${responsiveSize} !important; 
-        line-height: 1.2 !important;
-        text-shadow:
-          0px 0px 1px rgba(0, 0, 0, 0.4), 
-          -1px -1px 1px rgba(0, 0, 0, 0.6),
-          1px 1px 1px rgba(0, 0, 0, 0.6);
-        background: none !important;
-        padding: 6px 10px !important;
-        margin: 0 !important;
-        border-radius: 4px !important;
+        font-size: ${fontSize} !important;
+      }
+
+      /* Mobile responsiveness */
+      @media (max-width: 768px) {
+        video::cue {
+          font-size: ${isFullscreen ? '24px' : '20px'} !important;
+        }
+      }
+
+      @media (max-width: 480px) {
+        video::cue {
+          font-size: ${isFullscreen ? '22px' : '18px'} !important;
+        }
       }
     `;
-  }, [ isFullscreen]);
+
+    return () => {
+      if (style && document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    };
+  }, [isFullscreen]);
+
+
 
   const showControlsTemporarily = () => {
     setShowControls(true);
@@ -913,11 +919,12 @@ export default function ProfessionalVideoPlayer() {
   }, [isFullscreen, buffering, isAdPlaying]);
 
   const handleDownloadVideo = useCallback(async () => {
+    setGeneratingLoading(true);
     if (!selectedTorrent || !movieInfo) return;
 
     try {
+      // 1️⃣ Build backend download URL
       const torrentUrl = encodeURIComponent(selectedTorrent.url);
-
       const params = new URLSearchParams({
         torrent: torrentUrl,
         quality: selectedTorrent.quality,
@@ -928,27 +935,43 @@ export default function ProfessionalVideoPlayer() {
 
       const downloadUrl = `${TORRENT_BACKEND_URL}/download?${params.toString()}`;
 
-      console.log("🔗 Download URL:", downloadUrl);
+      // 2️⃣ Check backend health
+      const healthRes = await fetch(`${TORRENT_BACKEND_URL}/health`);
+      if (!healthRes.ok) throw new Error("Download server is not available");
 
-      const testResponse = await fetch(`${TORRENT_BACKEND_URL}/health`);
-      if (!testResponse.ok) {
-        throw new Error("Download server is not available");
+      // 3️⃣ Generate AdFly short link WITHOUT alias (let AdFly auto-generate)
+      const shortenRes = await fetch("/api/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          url: downloadUrl 
+          // No alias parameter - AdFly will generate one automatically
+        }),
+      });
+
+      if (!shortenRes.ok) {
+        const errorData = await shortenRes.json();
+        throw new Error(errorData.error || "Failed to shorten URL");
       }
 
+      const shortenData = await shortenRes.json();
+      if (!shortenData.shortUrl) throw new Error(shortenData.error || "Failed to shorten URL");
+
+      const adflyUrl = shortenData.shortUrl;
+      console.log("✅ AdFly Short URL:", adflyUrl);
+
       const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.style.display = "none";
-
-      const fileExtension =
-        selectedTorrent.type === "bluray" ? "mkv" : "mp4";
-      a.download = `${movieInfo.title} (${selectedTorrent.quality}).${fileExtension}`;
-
+      a.href = adflyUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
     } catch (error) {
       console.error("❌ Download failed:", error);
       alert(`Download failed: ${error}. Please try again later.`);
+    } finally {
+      setGeneratingLoading(false);
     }
   }, [selectedTorrent, movieInfo]);
 
@@ -1093,6 +1116,7 @@ export default function ProfessionalVideoPlayer() {
         loading={loading}
         onDownload={handleDownloadVideo}
         isDownloadable={!!selectedTorrent && !!movieInfo}
+        generatingLoading={generatingLoading}
       />
     </div>
   );

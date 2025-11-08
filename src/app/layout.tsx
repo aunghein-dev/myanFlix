@@ -5,7 +5,6 @@ import Container from "./container";
 import Script from 'next/script';
 import AdsterraAdsLoader from "@/components/ads/AdsterraAdsLoader";
 import Head from "next/head";
-import HilltopAdsLoader from "@/components/ads/HilltopAdsLoader";
 
 
 export const metadata: Metadata = {
@@ -54,7 +53,6 @@ export default function RootLayout({
       </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
         <AdsterraAdsLoader />
-        <HilltopAdsLoader/>
         <Container>{children}</Container>
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"

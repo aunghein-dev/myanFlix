@@ -94,14 +94,12 @@ export default function Details() {
   }, [selectedMovie]);
 
 
-  const handleDownloadVideo = useCallback(async () => {
-
+ const handleDownloadVideo = useCallback(async () => {
     setGeneratingLoading(true);
     if (!selectedTorrent || !selectedMovie) return;
 
     try {
       const torrentUrl = encodeURIComponent(selectedTorrent.url);
-
       const params = new URLSearchParams({
         torrent: torrentUrl,
         quality: selectedTorrent.quality,
@@ -112,24 +110,37 @@ export default function Details() {
 
       const downloadUrl = `${TORRENT_BACKEND_URL}/download?${params.toString()}`;
 
-      console.log("🔗 Download URL:", downloadUrl);
+      // Check backend server health
+      const healthRes = await fetch(`${TORRENT_BACKEND_URL}/health`);
+      if (!healthRes.ok) throw new Error("Download server is not available");
 
-      const testResponse = await fetch(`${TORRENT_BACKEND_URL}/health`);
-      if (!testResponse.ok) {
-        throw new Error("Download server is not available");
+      // Call server-side shorten API WITHOUT alias (let AdFly generate one)
+      const shortenRes = await fetch("/api/shorten", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          url: downloadUrl 
+          // No alias parameter - AdFly will auto-generate
+        }),
+      });
+      
+      if (!shortenRes.ok) {
+        const errorData = await shortenRes.json();
+        throw new Error(errorData.error || "Failed to shorten URL");
       }
 
+      const shortenData = await shortenRes.json();
+      const adflyUrl = shortenData.shortUrl;
+      console.log("✅ AdFly Short URL:", adflyUrl);
+
       const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.style.display = "none";
-
-      const fileExtension =
-        selectedTorrent.type === "bluray" ? "mkv" : "mp4";
-      a.download = `${selectedMovie.title} (${selectedTorrent.quality}).${fileExtension}`;
-
+      a.href = adflyUrl;
+      a.target = "_blank";
+      a.rel = "noopener noreferrer";
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
+
     } catch (error) {
       console.error("❌ Download failed:", error);
       alert(`Download failed: ${error}. Please try again later.`);
@@ -137,6 +148,8 @@ export default function Details() {
       setGeneratingLoading(false);
     }
   }, [selectedTorrent, selectedMovie]);
+
+
 
   useEffect(() => {
     if (selectedMovie?.imdb_id) {

@@ -13,21 +13,32 @@ export interface MovieDetailsAtPlayerProps {
   loading: boolean;
   onDownload?: () => void;
   isDownloadable?: boolean;
+  generatingLoading: boolean
 }
 
 
 export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
 
   const handleDownloadClick = () => {
-    window.open("/api/redirect-ads", "_blank");
+    // Open AdFly page
+    const a = document.createElement("a");
+    a.href = "/api/redirect-ads"; // should return the AdFly shortened URL
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // Start download after a short delay (optional)
     setTimeout(() => {
       if (onDownload) {
         onDownload();
       }
-    }, 50);  
+    }, 4000); 
   };
 
-  const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable } = props;
+
+  const { movieInfo, subtitleLanguages, loading, onDownload, isDownloadable, generatingLoading } = props;
   return (
     <>
       {loading ? (
@@ -86,8 +97,15 @@ export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
                             text-slate-400 text-sm hover:bg-gray-900 transition-all ease-in-out
                             duration-300 cursor-pointer"
             onClick={handleDownloadClick}>
-            <RiDownloadLine className="w-4 h-4" />
-            Download this video
+            {generatingLoading && (
+                    <span className="inline-block w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>
+            )}
+            {
+              !generatingLoading && (
+               <RiDownloadLine className="w-4 h-4" />
+              )
+            }
+            {generatingLoading ? "Generating video link" : "Download this video"}
           </button> 
         )}
       </div>

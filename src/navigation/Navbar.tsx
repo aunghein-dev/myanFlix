@@ -75,12 +75,14 @@ export default function Navbar() {
     setLiveResult(res);
   }, [liveMatches]); // Dependency: liveMatches (data from SWR)
 
-  const allowRoutes = ["/", "/movies", "/videoplayer", "/details"];
 
   const isAllowedPage =
-    allowRoutes.includes(pathname) ||
-    pathname.startsWith("/details/") ||
-    pathname.startsWith("/videoplayer/");
+    pathname === "/" ||
+    pathname.startsWith("/movies") ||
+    pathname.startsWith("/videoplayer") ||
+    pathname === "/details" ||
+    pathname.startsWith("/details/");
+
 
   // 3. Main Search Effect - Added stable dependencies
   useEffect(() => {

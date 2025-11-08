@@ -27,7 +27,7 @@ export async function GET() {
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      console.warn(`⚠️ Adsterra proxy fetch failed with status ${response.status}`);
     }
 
     const contentType = response.headers.get('content-type') || 'application/javascript';
