@@ -79,3 +79,9 @@ body {
   padding-top: env(safe-area-inset-top); 
 }
 
+
+.custom-focuser:focus {
+  outline: 1.5px dashed rgba(232, 234, 237, 0.8);
+  outline-offset: 0.25rem;
+  border-radius: 0.15rem;
+}

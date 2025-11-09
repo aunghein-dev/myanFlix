@@ -87,7 +87,7 @@ export default function DetailsInfoOnHero(props : Props) {
           <div className="flex flex-row items-center mt-8 sm:mt-0 min-h-10">
             <Link className="text-white flex flex-row items-center sm:text-md text-sm
                               bg-[#228EE5] hover:bg-[#1b6fb8] transition-colors 
-                              duration-300 px-5 py-2 rounded-md font-medium"
+                              duration-300 px-5 py-2 rounded-md font-medium custom-focuser"
                 href={`/videoplayer/${selectedMovie?.id}`}>
               <FaPlay className="inline mr-1 h-3 w-4"/>
               Watch Now
@@ -98,7 +98,7 @@ export default function DetailsInfoOnHero(props : Props) {
                   className="border border-[#228EE5]/60 text-white 
                             flex flex-row items-center sm:text-md text-sm
                             hover:bg-white/10 transition-colors duration-300 
-                            px-5 py-2 rounded-md font-medium ml-4
+                            px-5 py-2 rounded-md font-medium ml-4 custom-focuser
                             cursor-pointer hover:border-[#228EE5]"
                   onClick={handleDownloadClick}
                   disabled={generatingLoading} 

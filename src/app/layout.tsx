@@ -3,8 +3,6 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
-import AdsterraAdsLoader from "@/components/ads/AdsterraAdsLoader";
-import Head from "next/head";
 
 
 export const metadata: Metadata = {
@@ -22,17 +20,19 @@ export const metadata: Metadata = {
     "latest movies"
   ],
   icons: {
-    icon: '/favicon.ico',
+    icon: [
+      { url: '/favicon.ico', type: 'image/x-icon' },
+      { url: '/favicon.png', type: 'image/png' },
+    ],
   },
+  metadataBase: new URL('https://www.myanflix.top'),
 };
-
 
 const oswald = Oswald({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-oswald',
 });
-
 
 const inter = Inter({
   subsets: ['latin'],
@@ -45,15 +45,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
   return (
     <html lang="en">
-      <Head>
-        <link rel="icon" href="/favicon.ico"/>
-      </Head>
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
-        <AdsterraAdsLoader />
         <Container>{children}</Container>
+
+        {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-YMXJE571BD"
           strategy="afterInteractive"

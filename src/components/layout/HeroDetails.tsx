@@ -43,7 +43,7 @@ export default function HeroDetails({ activeMovie, hasTorrent }: { activeMovie: 
                 <Link
                   className="text-white sm:text-md text-sm flex items-center 
                              bg-[#228EE5] hover:bg-[#1b6fb8] transition-colors 
-                             duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer"
+                             duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer custom-focuser"
                   href={`/videoplayer/${activeMovie.id}`}
                 >
                   <FaPlay className="inline mr-1 h-3 w-4"/>
@@ -51,7 +51,7 @@ export default function HeroDetails({ activeMovie, hasTorrent }: { activeMovie: 
                 </Link>
                 <Link
                   className="border-[1px] sm:text-md text-sm border-[#228EE5] text-white flex items-center 
-                             hover:bg-white/10 transition-colors duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer"
+                             hover:bg-white/10 transition-colors duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer custom-focuser"
                   href={`/details/${activeMovie.id}`}
                 >
                   More Info
@@ -63,7 +63,7 @@ export default function HeroDetails({ activeMovie, hasTorrent }: { activeMovie: 
                 <Link
                   className="border-[1px] sm:text-md text-sm border-[#228EE5] 
                              text-white flex items-center 
-                             hover:bg-white/10 transition-colors duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer"
+                             hover:bg-white/10 transition-colors duration-300 px-5 py-2 rounded-3xl font-medium cursor-pointer custom-focuser"
                   href={`/details/${activeMovie.id}`}
                 >
                   More Info

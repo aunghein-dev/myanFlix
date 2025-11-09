@@ -60,7 +60,7 @@ const Search = (props: SearchProps) => {
         onBlur={() => setFocused(false)}
         className={`
           mx-1 bg-transparent text-sm font-normal sm:text-sm 
-          focus:outline-none transition-all duration-300 py-3 cursor-pointer
+          focus:outline-none transition-all duration-300 py-3 cursor-pointer 
           text-white/75
           ${shouldExpand ? "opacity-100 w-full" : "opacity-0 w-0"}
         `}

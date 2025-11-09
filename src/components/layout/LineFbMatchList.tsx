@@ -92,7 +92,7 @@ export default function LineFbMatchList({
                 className="inline-flex items-center text-[#228EE5] text-sm
                            underline-offset-2 transition-all duration-300
                            decoration-2 ease-in-out
-                           hover:underline select-none"
+                           hover:underline select-none custom-focuser"
               >
                 <span className="flex items-center gap-1">
                   See More

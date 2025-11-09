@@ -91,7 +91,7 @@ export default function MovieDetailsAtPlayer(props: MovieDetailsAtPlayerProps) {
           <button className="bg-gray-800 w-43 py-2.5 gap-2 rounded-md
                               flex flex-row items-center justify-center
                             text-slate-400 text-sm hover:bg-gray-900 transition-all ease-in-out
-                            duration-300 cursor-pointer"
+                            duration-300 cursor-pointer custom-focuser"
             onClick={handleDownloadClick}>
             {generatingLoading && (
                     <span className="inline-block w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin"></span>

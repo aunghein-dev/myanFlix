@@ -121,7 +121,7 @@ export default function Navbar() {
   return (
     <div
       className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl sm:mx-auto py-1
-                sm:rounded-2xl mb-6 fixed top-0 sm:top-4
+                sm:rounded-xl mb-6 fixed top-0 sm:top-4
                 left-0 right-0
                 bg-black/10
                 backdrop-blur-[30px]
@@ -144,7 +144,7 @@ export default function Navbar() {
           <div className="hidden sm:block">
             {
               logoLoading ? <Spinner className="mr-4 min-w-[136px] h-[72px]" color="#FFFFFFE6" size={25}/> : (
-                <Link href="/" className="hidden sm:block">
+                <Link href="/" className="hidden sm:block custom-focuser">
                   <GlobalImage
                     width={72}
                     height={72}
@@ -164,7 +164,7 @@ export default function Navbar() {
           <div className="block sm:hidden">
             {
               logoLoading ? <Spinner className="mr-2 ml-1 w-[72px] h-[72px]" color="#FFFFFFE6" size={24}/> : (
-                <Link href="/" className="block sm:hidden">
+                <Link href="/" className="block sm:hidden custom-focuser">
                   <div className="relative w-[72px] h-[72px] mr-10">
                     {/* Normal Logo */}
                     <GlobalImage
@@ -207,7 +207,7 @@ export default function Navbar() {
                   key={item.id}
                   href={item.href}
                   className={`relative font-medium transition-colors duration-300
-                              hover:text-[#228EE5] ${
+                              hover:text-[#228EE5] custom-focuser ${
                                 isActive ? "text-[#228EE5]" : "text-white/90"
                               }`}
                 >
