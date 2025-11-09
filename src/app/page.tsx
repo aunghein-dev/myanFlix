@@ -19,16 +19,22 @@ export interface TMDBResponse<T> {
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 const BASE_URL = "https://api.themoviedb.org/3";
 
-async function fetchPages<T>(url: string): Promise<TMDBResponse<T>> {
-  const [page1, page2,] = await Promise.all([
-    fetch(`${url}&page=1`).then(res => res.json()),
-    fetch(`${url}&page=2`).then(res => res.json()),
-  ]);
+async function fetchPages<T>(url: string, pages = 10): Promise<TMDBResponse<T>> {
+  const resultsArray: T[] = [];
 
-  return {
-    results: [...(page1.results || []), ...(page2.results || [])],
-  };
+  const pagePromises = Array.from({ length: pages }, (_, i) =>
+    fetch(`${url}&page=${i + 1}`).then(res => res.json())
+  );
+
+  const pagesData = await Promise.all(pagePromises);
+
+  for (const page of pagesData) {
+    resultsArray.push(...(page.results || []));
+  }
+
+  return { results: resultsArray };
 }
+
 
 
 export const endpoints = {
@@ -36,20 +42,23 @@ export const endpoints = {
   trending: `${BASE_URL}/trending/all/day?api_key=${API_KEY}`,
   action: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=28&sort_by=popularity.desc`,
   adventure: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=12&sort_by=popularity.desc`,
-  kDrama: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=ko&sort_by=popularity.desc`,
-  indian: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=hi&sort_by=popularity.desc`,
+  kDrama: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=ko&sort_by=vote_average.desc&vote_count.gte=50`,
+  indian: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=hi&sort_by=popularity.desc&vote_count.gte=50`,
   anime: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_original_language=ja&with_genres=16&sort_by=popularity.desc`,
   animation: `${BASE_URL}/discover/movie?api_key=${API_KEY}&with_genres=16&sort_by=popularity.desc`,
   topRated: `${BASE_URL}/movie/top_rated?api_key=${API_KEY}`,
 };
 
 
-const filterRecentMovies = (movie: Movie) => {
+const filterRecentAndRatedMovies = (movie: Movie) => {
   if (!movie.release_date) return false;
+
   const releaseYear = new Date(movie.release_date).getFullYear();
   const currentYear = new Date().getFullYear();
-  return releaseYear >= currentYear - 3;
+
+  return releaseYear >= currentYear - 2 && movie.vote_average > 0;
 };
+
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
@@ -142,31 +151,31 @@ export default function Home() {
 
   // Memoized movie lists
   const trendingMovies = useMemo(
-    () => trendingData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => trendingData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [trendingData]
   );
   const actionMovies = useMemo(
-    () => actionData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => actionData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [actionData]
   );
   const adventureMovies = useMemo(
-    () => adventureData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => adventureData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [adventureData]
   );
   const kDramaMovies = useMemo(
-    () => kDramaData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => kDramaData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [kDramaData]
   );
   const indianMovies = useMemo(
-    () => indianData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
-    [indianData]
-  );
+      () => indianData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+      [indianData]
+    );
   const animeMovies = useMemo(
-    () => animeData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => animeData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [animeData]
   );
   const animationMovies = useMemo(
-    () => animationData?.results.filter(filterRecentMovies).slice(0, 60) ?? [],
+    () => animationData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
     [animationData]
   );
   const topRatedMovies = topRatedData?.results.slice(0, 60) ?? [];

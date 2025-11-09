@@ -54,10 +54,10 @@ export default function ErrorView({
 
           <div className="mt-4 flex gap-3">
             <button 
-            className="px-6 py-2 text-sm bg-gray-800 hover:bg-gray-900 text-white rounded-md transition"            
+            className="px-6 py-2 text-sm bg-gray-800 hover:bg-gray-900 text-white rounded-md transition custom-focuser"            
             onClick={retry}>Reload</button>
            <button
-              className="px-6 py-2 text-sm bg-gray-800 hover:bg-gray-900 text-white rounded-md transition"
+              className="px-6 py-2 text-sm bg-gray-800 hover:bg-gray-900 text-white rounded-md transition custom-focuser"
               onClick={() => {
                 if (window.history.length > 2) {
                   window.history.go(-2);

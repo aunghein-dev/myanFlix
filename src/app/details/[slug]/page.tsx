@@ -193,7 +193,6 @@ export default function Details() {
       <DetailsFooter
        isMovieLoading={isMovieLoading}
        selectedMovie={selectedMovie!} suggestedMovies={suggestedMovies || []} />
-
     </section>
   );
 }
