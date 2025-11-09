@@ -164,7 +164,7 @@ export default function Navbar() {
           <div className="block sm:hidden">
             {
               logoLoading ? <Spinner className="mr-2 ml-1 w-[72px] h-[72px]" color="#FFFFFFE6" size={24}/> : (
-                <Link href="/" className="block sm:hidden custom-focuser">
+                <Link href="/" className="block sm:hidden">
                   <div className="relative w-[72px] h-[72px] mr-10">
                     {/* Normal Logo */}
                     <GlobalImage

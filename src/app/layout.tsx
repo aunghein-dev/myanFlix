@@ -19,12 +19,7 @@ export const metadata: Metadata = {
     "sports live", 
     "latest movies"
   ],
-  icons: {
-    icon: [
-      { url: '/favicon.ico', type: 'image/x-icon' },
-      { url: '/favicon.png', type: 'image/png' },
-    ],
-  },
+  icons: '/favicon.ico',
   metadataBase: new URL('https://www.myanflix.top'),
 };
 

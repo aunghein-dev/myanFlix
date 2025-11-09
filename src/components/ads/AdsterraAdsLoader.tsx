@@ -15,7 +15,7 @@ export default function AdsterraLoader() {
         console.log('✅ Adsterra script loaded successfully.');
       }}
       onError={(e) => {
-        console.error('❌ Failed to load Adsterra script:', e);
+        console.warn('❌ Failed to load Adsterra script:', e);
       }}
     />
   );

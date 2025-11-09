@@ -59,6 +59,22 @@ const filterRecentAndRatedMovies = (movie: Movie) => {
   return releaseYear >= currentYear - 2 && movie.vote_average > 0;
 };
 
+const removeDuplicates = (movies: Movie[]) => {
+  const seen = new Set<number>();
+  return movies.filter(movie => {
+    if (seen.has(movie.id)) return false;
+    seen.add(movie.id);
+    return true;
+  });
+};
+
+const getMovies = (movies: Movie[] | undefined, limit = 60) => {
+  if (!movies) return [];
+  const filtered = movies.filter(filterRecentAndRatedMovies);
+  const unique = removeDuplicates(filtered);
+  return unique.slice(0, limit);
+};
+
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
@@ -99,10 +115,10 @@ export default function Home() {
   });
 
   const heroMovies = useMemo(
-    () => heroData?.results.slice(0, 5) ?? [], 
+    () => getMovies(heroData?.results, 5),
     [heroData]
   );
-
+  
   useEffect(() => {
     // Run as soon as heroMovies are available
     if (heroMovies.length === 0) return;
@@ -149,35 +165,44 @@ export default function Home() {
 
   const activeMovie = heroMovies[activeIndex];
 
+  
+
   // Memoized movie lists
   const trendingMovies = useMemo(
-    () => trendingData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(trendingData?.results),
     [trendingData]
   );
+
   const actionMovies = useMemo(
-    () => actionData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(actionData?.results),
     [actionData]
   );
+
   const adventureMovies = useMemo(
-    () => adventureData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(adventureData?.results),
     [adventureData]
   );
+
   const kDramaMovies = useMemo(
-    () => kDramaData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(kDramaData?.results),
     [kDramaData]
   );
+
   const indianMovies = useMemo(
-      () => indianData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
-      [indianData]
-    );
+    () => getMovies(indianData?.results),
+    [indianData]
+  );
+
   const animeMovies = useMemo(
-    () => animeData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(animeData?.results),
     [animeData]
   );
+
   const animationMovies = useMemo(
-    () => animationData?.results.filter(filterRecentAndRatedMovies).slice(0, 60) ?? [],
+    () => getMovies(animationData?.results),
     [animationData]
   );
+
   const topRatedMovies = topRatedData?.results.slice(0, 60) ?? [];
 
   const liveMatchesToShow = uniqueMatches(liveMatches?.filter((m) => m.match_status === "live"));
