@@ -13,20 +13,18 @@ interface AdsterraBannerProps {
 }
 
 /**
- * 💎 AdsterraBanner — Fully Responsive + Multi-Instance Safe
- * - Works for top & bottom banners simultaneously
- * - Creates isolated iframes per ad (no global conflicts)
- * - Responsive to screen size changes
- * - 100% TypeScript safe
+ * 💎 Production-ready Adsterra Banner
+ * - Responsive (728×90 / 468×60 / 320×50)
+ * - Supports multiple instances (top & bottom)
+ * - Type-safe and SSR-safe
  */
-export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
+export default function AdsterraBanner({ placement = "top" }: AdsterraBannerProps) {
   const adRef = useRef<HTMLDivElement>(null);
 
+  /** Decide banner size & zone by screen width */
   const getResponsiveConfig = (): AdConfig => {
     const width = window.innerWidth;
-
     if (width >= 1024) {
-      // Desktop
       return {
         key:
           placement === "bottom"
@@ -35,8 +33,8 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
         width: 728,
         height: 90,
       };
-    } else if (width >= 768) {
-      // Tablet
+    }
+    if (width >= 768) {
       return {
         key:
           placement === "bottom"
@@ -45,44 +43,40 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
         width: 468,
         height: 60,
       };
-    } else {
-      // Mobile
-      return {
-        key: "84d245d3ecc043dda0a8c5cd9b1d96e2",
-        width: 320,
-        height: 50,
-      };
     }
+    return { key: "84d245d3ecc043dda0a8c5cd9b1d96e2", width: 320, height: 50 };
   };
 
-  /**
-   * Create an isolated iframe for each banner to prevent global conflicts
-   */
-  const loadAd = (container: HTMLDivElement, config: AdConfig) => {
-    // Clear container
+  /** Inject Adsterra script safely */
+  const loadAd = (container: HTMLDivElement, config: AdConfig): void => {
     container.innerHTML = "";
 
-    // Create isolated iframe
     const iframe = document.createElement("iframe");
-    iframe.width = `${config.width}`;
-    iframe.height = `${config.height}`;
+    iframe.width = String(config.width);
+    iframe.height = String(config.height);
     iframe.frameBorder = "0";
     iframe.scrolling = "no";
-    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
-    iframe.style.border = "none";
-    iframe.style.overflow = "hidden";
-    iframe.style.display = "block";
-    iframe.style.margin = "0 auto";
+    // safer sandbox: allow-scripts only, no same-origin
+    iframe.setAttribute("sandbox", "allow-scripts");
+    Object.assign(iframe.style, {
+      border: "none",
+      overflow: "hidden",
+      display: "block",
+      margin: "0 auto",
+      maxWidth: "100%",
+    });
 
     container.appendChild(iframe);
 
-    // Write the Adsterra script directly into the iframe
     const doc = iframe.contentDocument;
     if (!doc) return;
 
+    // Write ad markup inside isolated document
     doc.open();
     doc.write(`
+      <!DOCTYPE html>
       <html>
+        <head><meta name="viewport" content="width=device-width, initial-scale=1" /></head>
         <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;">
           <script>
             window.atOptions = {
@@ -104,23 +98,21 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
     const el = adRef.current;
     if (!el) return;
 
-    const config = getResponsiveConfig();
-    loadAd(el, config);
+    const cfg = getResponsiveConfig();
+    loadAd(el, cfg);
 
-    // Handle window resize
     let resizeTimer: NodeJS.Timeout;
-    const handleResize = () => {
+    const onResize = () => {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(() => {
-        const newConfig = getResponsiveConfig();
-        loadAd(el, newConfig);
+        loadAd(el, getResponsiveConfig());
       }, 400);
     };
+    window.addEventListener("resize", onResize);
 
-    window.addEventListener("resize", handleResize);
     return () => {
       clearTimeout(resizeTimer);
-      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("resize", onResize);
       el.innerHTML = "";
     };
   }, [placement]);
@@ -133,7 +125,7 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
     >
       <div
         ref={adRef}
-        className="min-h-[70px] md:min-h-[90px] lg:min-h-[120px] flex justify-center items-center"
+        className="w-full min-h-[70px] md:min-h-[90px] lg:min-h-[120px] flex justify-center items-center"
       />
     </div>
   );
