@@ -9,6 +9,7 @@ import MatchPickCarousel from "@/components/layout/MatchPickCarousel";
 import React from "react";
 import Spinner from "@/components/atoms/Spinner";
 import ErrorView from "@/components/ErrorView";
+import AdsterraAdsBanner from "@/components/ads/AdsterraAdsBanner";
 
 const LIVE = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL + "/live";
 
@@ -135,6 +136,7 @@ export default function LivePage() {
             link="/live" 
            />
         }
+        <AdsterraAdsBanner/>
         {
           uefaMatchesToShow.length > 0 && 
             <LineFbMatchList
@@ -219,6 +221,7 @@ export default function LivePage() {
           upComingMatchesToShow.length > 0 && 
           <LineFbMatchList liveMatchesList={upComingMatchesToShow} title="Upcoming" link="/live" />
         }
+        <AdsterraAdsBanner/>
       </div>
 
     </section>

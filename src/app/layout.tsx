@@ -3,6 +3,7 @@ import { Inter, Oswald } from "next/font/google";
 import "./globals.css";
 import Container from "./container";
 import Script from 'next/script';
+import AdsterraLoader from "@/components/ads/AdsterraAdsLoader";
 
 
 export const metadata: Metadata = {
@@ -43,6 +44,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${oswald.variable} ${inter.variable} antialiased`}>
+        <AdsterraLoader/>
         <Container>{children}</Container>
 
         {/* Google Analytics */}

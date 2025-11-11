@@ -63,7 +63,7 @@ export default function GlobalImage({
       src={currentSrc}
       alt={alt}
       onError={handleError}
-      onLoadingComplete={handleLoadComplete}
+      onLoad={handleLoadComplete}
       className={className}
     />
   ) : (
@@ -74,7 +74,7 @@ export default function GlobalImage({
       src={currentSrc}
       alt={alt}
       onError={handleError}
-      onLoadingComplete={handleLoadComplete}
+      onLoad={handleLoadComplete}
       className={className}
     />
   );
