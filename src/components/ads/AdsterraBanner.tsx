@@ -2,41 +2,26 @@
 
 import { useEffect, useRef } from "react";
 
-/**
- * 💎 Fully Type-Safe, Responsive, Multi-Instance Adsterra Banner Component
- * - Supports multiple banners per page (e.g., top and bottom)
- * - Automatically adjusts to screen size (desktop/tablet/mobile)
- * - Cleans up safely and avoids global conflicts
- * - 100% TypeScript safe, ready for production
- */
-
 interface AdConfig {
   key: string;
   width: number;
   height: number;
 }
 
-interface WindowWithAdsterra extends Window {
-  atOptions?: {
-    key: string;
-    format: string;
-    height: number;
-    width: number;
-    params: Record<string, unknown>;
-  };
-}
-
 interface AdsterraBannerProps {
-  /** Optional placement name for analytics clarity */
   placement?: "top" | "bottom";
 }
 
+/**
+ * 💎 AdsterraBanner — Fully Responsive + Multi-Instance Safe
+ * - Works for top & bottom banners simultaneously
+ * - Creates isolated iframes per ad (no global conflicts)
+ * - Responsive to screen size changes
+ * - 100% TypeScript safe
+ */
 export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
   const adRef = useRef<HTMLDivElement>(null);
 
-  /**
-   * Select correct Adsterra zone key & size based on viewport
-   */
   const getResponsiveConfig = (): AdConfig => {
     const width = window.innerWidth;
 
@@ -45,8 +30,8 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
       return {
         key:
           placement === "bottom"
-            ? "b4928255eff94d6975b0490cf1eb8172" // Bottom zone key
-            : "d1da9187f471cbd87cbb4f8867a44278", // Top zone key
+            ? "b4928255eff94d6975b0490cf1eb8172"
+            : "d1da9187f471cbd87cbb4f8867a44278",
         width: 728,
         height: 90,
       };
@@ -63,10 +48,7 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
     } else {
       // Mobile
       return {
-        key:
-          placement === "bottom"
-            ? "84d245d3ecc043dda0a8c5cd9b1d96e2"
-            : "84d245d3ecc043dda0a8c5cd9b1d96e2",
+        key: "84d245d3ecc043dda0a8c5cd9b1d96e2",
         width: 320,
         height: 50,
       };
@@ -74,50 +56,58 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
   };
 
   /**
-   * Load Adsterra ad safely for each instance
+   * Create an isolated iframe for each banner to prevent global conflicts
    */
-  const loadAd = (container: HTMLDivElement, config: AdConfig): void => {
-    const w = window as WindowWithAdsterra;
-
-    // Reset container (important for remounting or reloading)
+  const loadAd = (container: HTMLDivElement, config: AdConfig) => {
+    // Clear container
     container.innerHTML = "";
 
-    // Step 1: Assign temporary Adsterra config
-    w.atOptions = {
-      key: config.key,
-      format: "iframe",
-      height: config.height,
-      width: config.width,
-      params: {},
-    };
+    // Create isolated iframe
+    const iframe = document.createElement("iframe");
+    iframe.width = `${config.width}`;
+    iframe.height = `${config.height}`;
+    iframe.frameBorder = "0";
+    iframe.scrolling = "no";
+    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+    iframe.style.border = "none";
+    iframe.style.overflow = "hidden";
+    iframe.style.display = "block";
+    iframe.style.margin = "0 auto";
 
-    // Step 2: Create script element with unique timestamp (to avoid caching)
-    const script = document.createElement("script");
-    script.type = "text/javascript";
-    script.src = `//www.highperformanceformat.com/${config.key}/invoke.js?t=${Date.now()}`;
-    script.async = true;
+    container.appendChild(iframe);
 
-    // Step 3: Once loaded, clean up global variable
-    script.onload = () => {
-      delete w.atOptions;
-    };
+    // Write the Adsterra script directly into the iframe
+    const doc = iframe.contentDocument;
+    if (!doc) return;
 
-    // Step 4: Inject script
-    container.appendChild(script);
+    doc.open();
+    doc.write(`
+      <html>
+        <body style="margin:0;padding:0;display:flex;justify-content:center;align-items:center;">
+          <script>
+            window.atOptions = {
+              key: "${config.key}",
+              format: "iframe",
+              height: ${config.height},
+              width: ${config.width},
+              params: {}
+            };
+          </script>
+          <script src="//www.highperformanceformat.com/${config.key}/invoke.js"></script>
+        </body>
+      </html>
+    `);
+    doc.close();
   };
 
-  /**
-   * Effect to handle mount, resize responsiveness, and cleanup
-   */
   useEffect(() => {
     const el = adRef.current;
     if (!el) return;
 
-    // Initial load
     const config = getResponsiveConfig();
     loadAd(el, config);
 
-    // Debounced resize handler to reload ad on viewport change
+    // Handle window resize
     let resizeTimer: NodeJS.Timeout;
     const handleResize = () => {
       clearTimeout(resizeTimer);
@@ -128,7 +118,6 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
     };
 
     window.addEventListener("resize", handleResize);
-
     return () => {
       clearTimeout(resizeTimer);
       window.removeEventListener("resize", handleResize);
@@ -136,9 +125,6 @@ export default function AdsterraBanner({ placement }: AdsterraBannerProps) {
     };
   }, [placement]);
 
-  /**
-   * Responsive container layout (Tailwind)
-   */
   return (
     <div
       className={`flex justify-center items-center w-full bg-transparent ${
