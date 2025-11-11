@@ -13,28 +13,32 @@ interface AdsterraBannerProps {
 }
 
 /**
- * 💎 AdsterraBanner — production-ready
- * - Works for multiple instances (top/bottom)
+ * 💎 AdsterraBanner — Production-ready
+ * - Renders multiple instances safely (top & bottom)
  * - Responsive (728×90 / 468×60 / 320×50)
- * - Type-safe
- * - Uses minimal sandbox needed for Adsterra
+ * - Allows popups for ad clicks
+ * - Type-safe and SSR-safe
  */
 export default function AdsterraBanner({ placement = "top" }: AdsterraBannerProps) {
   const adRef = useRef<HTMLDivElement>(null);
 
+  /** Decide banner size & zone by screen width */
   const getResponsiveConfig = (): AdConfig => {
     const w = window.innerWidth;
+
     if (w >= 1024) {
+      // Desktop
       return {
         key:
           placement === "bottom"
-            ? "b4928255eff94d6975b0490cf1eb8172"
-            : "d1da9187f471cbd87cbb4f8867a44278",
+            ? "b4928255eff94d6975b0490cf1eb8172" // bottom zone
+            : "d1da9187f471cbd87cbb4f8867a44278", // top zone
         width: 728,
         height: 90,
       };
     }
     if (w >= 768) {
+      // Tablet
       return {
         key:
           placement === "bottom"
@@ -44,10 +48,12 @@ export default function AdsterraBanner({ placement = "top" }: AdsterraBannerProp
         height: 60,
       };
     }
+    // Mobile
     return { key: "84d245d3ecc043dda0a8c5cd9b1d96e2", width: 320, height: 50 };
   };
 
-  const loadAd = (container: HTMLDivElement, cfg: AdConfig) => {
+  /** Inject Adsterra script safely */
+  const loadAd = (container: HTMLDivElement, cfg: AdConfig): void => {
     container.innerHTML = "";
 
     const iframe = document.createElement("iframe");
@@ -55,8 +61,13 @@ export default function AdsterraBanner({ placement = "top" }: AdsterraBannerProp
     iframe.height = String(cfg.height);
     iframe.frameBorder = "0";
     iframe.scrolling = "no";
-    // Adsterra requires same-origin + scripts
-    iframe.setAttribute("sandbox", "allow-scripts allow-same-origin");
+
+    // ✅ Correct sandbox: allows scripts, same-origin, and popups for ad clicks
+    iframe.setAttribute(
+      "sandbox",
+      "allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+    );
+
     Object.assign(iframe.style, {
       border: "none",
       display: "block",
@@ -96,15 +107,17 @@ export default function AdsterraBanner({ placement = "top" }: AdsterraBannerProp
 
     loadAd(el, getResponsiveConfig());
 
-    let t: NodeJS.Timeout;
+    // Responsive reload on resize
+    let timer: NodeJS.Timeout;
     const handleResize = () => {
-      clearTimeout(t);
-      t = setTimeout(() => loadAd(el, getResponsiveConfig()), 400);
+      clearTimeout(timer);
+      timer = setTimeout(() => loadAd(el, getResponsiveConfig()), 400);
     };
+
     window.addEventListener("resize", handleResize);
 
     return () => {
-      clearTimeout(t);
+      clearTimeout(timer);
       window.removeEventListener("resize", handleResize);
       el.innerHTML = "";
     };
