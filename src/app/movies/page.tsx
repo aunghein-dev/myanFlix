@@ -5,7 +5,7 @@ import { Movie } from "../../types/movie";
 import useSWR from "swr";
 import { fetcher } from "../../lib/fetcher";
 import { useMemo } from "react";
-import AdsterraAdsBanner from "@/components/ads/AdsterraAdsBanner";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
@@ -271,7 +271,7 @@ export default function MoviesPage() {
     <section className="mx-auto mb-8 max-w-6xl px-1 sm:px-2 md:max-w-3xl lg:max-w-5xl">
       <div className="sm:min-h-[110px] min-h-20"></div>
       <div className="">
-        <AdsterraAdsBanner/>
+        <AdsterraBanner placement="top" />
         {CATEGORY_CONFIGS.map((c) => (
           <LineMovieList
             key={c.key}
@@ -282,7 +282,7 @@ export default function MoviesPage() {
           />
         ))}
       </div>
-
+       <AdsterraBanner placement="bottom" />
     </section>
   );
 }

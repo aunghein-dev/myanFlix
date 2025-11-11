@@ -8,6 +8,7 @@ import { useMovieDetails } from "@/hook/useMovieDetails";
 import Spinner from "@/components/atoms/Spinner";
 import { useCallback, useEffect, useState } from "react";
 import { Torrent, TORRENT_BACKEND_URL } from "@/app/videoplayer/[slug]/page";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 
 interface Images {
   backdrops: { file_path: string }[];
@@ -189,6 +190,7 @@ export default function Details() {
          <div className="absolute inset-0 bg-gradient-to-t from-background via-black/5 to-transparent"></div>
         </div>
       </div>
+      <AdsterraBanner placement="bottom" />
 
       <DetailsFooter
        isMovieLoading={isMovieLoading}

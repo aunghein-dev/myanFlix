@@ -10,6 +10,7 @@ import { Person } from "@/components/layout/LineCharacterList";
 import GlobalImage from "@/components/atoms/GlobalImage";
 import useSWR from "swr";
 import Spinner from "@/components/atoms/Spinner";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 
 
 interface PersonDetails {
@@ -135,6 +136,8 @@ export default function PersonPage() {
           </div>
         )
       )}
+
+      <AdsterraBanner placement="bottom" />
 
       <PersonRelateGrid movies={movies} isLoading={isMoviesLoading} />
       <RelatedCeleGrid celebrities={relatedCelebrities ?? []} isLoading={isMoviesLoading || isRelatedLoading}/>

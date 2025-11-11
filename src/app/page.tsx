@@ -11,7 +11,7 @@ import LineFbMatchList from "@/components/layout/LineFbMatchList";
 import type { FootballMatch } from "@/components/cards/FootballMatchCard";
 import Spinner from "@/components/atoms/Spinner";
 import { uniqueMatches } from "./live/page";
-import AdsterraAdsBanner from "@/components/ads/AdsterraAdsBanner";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 
 export interface TMDBResponse<T> {
   results: T[];
@@ -223,6 +223,7 @@ export default function Home() {
 
       <div className="sm:max-w-2xl md:max-w-3xl lg:max-w-5xl max-w-6xl mx-auto px-1 sm:px-2 pt-3">
         <LineMovieList title="Trending" moviesList={trendingMovies} link="/movies/categories/trending" loading={trendingLoading}/>
+        <AdsterraBanner placement="top" />
         <LineMovieList title="Action" moviesList={actionMovies} link="/movies/categories/action" loading={actionLoading}/>
         {liveMatchesLoading ? (
           <Spinner className="min-h-[280px]" />
@@ -236,11 +237,10 @@ export default function Home() {
 
         <LineMovieList title="Adventure" moviesList={adventureMovies} link="/movies/categories/adventure" loading={adventureLoading} />
         <LineMovieList title="K-Drama" moviesList={kDramaMovies} link="/movies/categories/kdrama" loading={kDramaLoading}/>
-        <AdsterraAdsBanner/>
         <LineMovieList title="Bollywood" moviesList={indianMovies} link="/movies/categories/indian" loading={indianLoading}/>
         <LineMovieList title="Anime" moviesList={animeMovies} link="/movies/categories/anime" loading={animeLoading}/>
+        <AdsterraBanner placement="bottom" />
         <LineMovieList title="Animation" moviesList={animationMovies} link="/movies/categories/animation" loading={animationLoading}/>
-        <AdsterraAdsBanner/>
         <LineMovieList title="Top Rated" moviesList={topRatedMovies} link="/movies/categories/toprated" loading={topRatedLoading}/>
         <LineCharacterList/>
 
@@ -258,7 +258,6 @@ export default function Home() {
             </div>
           )
         )}
-        <AdsterraAdsBanner/>
       </div>
     </div>
   );

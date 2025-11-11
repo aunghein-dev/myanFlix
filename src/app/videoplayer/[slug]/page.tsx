@@ -6,6 +6,7 @@ import Spinner from "@/components/atoms/Spinner";
 import { MovieDetails } from "@/app/details/[slug]/page";
 import MovieDetailsAtPlayer from "@/components/layout/MovieDetailsAtPlayer";
 import { X } from "lucide-react";
+import AdsterraBanner from "@/components/ads/AdsterraBanner";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 export const TORRENT_BACKEND_URL = process.env.NEXT_PUBLIC_TORRENT_BACKEND_URL;
@@ -1134,6 +1135,8 @@ export default function ProfessionalVideoPlayer() {
         isDownloadable={!!selectedTorrent && !!movieInfo}
         generatingLoading={generatingLoading}
       />
+
+      <AdsterraBanner placement="bottom" />
     </div>
   );
 }
