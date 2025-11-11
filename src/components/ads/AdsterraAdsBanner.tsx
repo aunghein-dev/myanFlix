@@ -2,32 +2,42 @@
 
 import { JSX, useEffect, useRef } from "react";
 
-/**
- * 💎 Fully Type-Safe Adsterra Banner Component
- * - Tailwind responsive design (desktop / tablet / mobile)
- * - Strict TypeScript types (no `any`)
- * - Safe DOM operations
- * - Clean cleanup for performance
- */
-
 interface AdConfig {
   key: string;
   width: number;
   height: number;
 }
 
+interface WindowWithAdsterra extends Window {
+  atOptions?: {
+    key: string;
+    format: string;
+    height: number;
+    width: number;
+    params: Record<string, unknown>;
+  };
+}
+
+/**
+ * 💎 Fully Type-Safe Adsterra Banner Component
+ * - Supports multiple banners per page
+ * - Automatically clears global window.atOptions to prevent conflicts
+ * - Strict TypeScript types (no `any`)
+ * - Responsive layout: desktop / tablet / mobile
+ */
 export default function AdsterraBanner(): JSX.Element {
-  // Explicitly type refs as non-nullable div elements
   const adRefDesktop = useRef<HTMLDivElement>(null);
   const adRefTablet = useRef<HTMLDivElement>(null);
   const adRefMobile = useRef<HTMLDivElement>(null);
 
   /**
-   * Loads a single Adsterra placement into the given container
+   * Injects one Adsterra script safely with type protection.
    */
   const loadAd = (container: HTMLDivElement, config: AdConfig): void => {
-    // Define Adsterra global configuration safely
-    (window as unknown as { atOptions: AdConfig & { format: string; params: Record<string, unknown> } }).atOptions = {
+    const w = window as WindowWithAdsterra;
+
+    // Define temporary global Adsterra config
+    w.atOptions = {
       key: config.key,
       format: "iframe",
       height: config.height,
@@ -35,39 +45,47 @@ export default function AdsterraBanner(): JSX.Element {
       params: {},
     };
 
-    // Create Adsterra invoke script
+    // Create the Adsterra invoke script
     const script = document.createElement("script");
     script.type = "text/javascript";
     script.src = `//www.highperformanceformat.com/${config.key}/invoke.js`;
     script.async = true;
+
+    // Once script finishes loading, clean up global variable
+    script.onload = () => {
+      delete w.atOptions;
+    };
 
     // Append script to container
     container.appendChild(script);
   };
 
   /**
-   * React hook: runs after component mounts to inject scripts
+   * React effect: injects ads after mount and cleans up on unmount
    */
   useEffect(() => {
-    if (adRefDesktop.current)
-      loadAd(adRefDesktop.current, { key: "d1da9187f471cbd87cbb4f8867a44278", width: 728, height: 90 });
+    const desktopRef = adRefDesktop.current;
+    const tabletRef = adRefTablet.current;
+    const mobileRef = adRefMobile.current;
 
-    if (adRefTablet.current)
-      loadAd(adRefTablet.current, { key: "b4928255eff94d6975b0490cf1eb8172", width: 468, height: 60 });
+    if (desktopRef)
+      loadAd(desktopRef, { key: "d1da9187f471cbd87cbb4f8867a44278", width: 728, height: 90 });
 
-    if (adRefMobile.current)
-      loadAd(adRefMobile.current, { key: "84d245d3ecc043dda0a8c5cd9b1d96e2", width: 320, height: 50 });
+    if (tabletRef)
+      loadAd(tabletRef, { key: "b4928255eff94d6975b0490cf1eb8172", width: 468, height: 60 });
 
-    // Cleanup on unmount
+    if (mobileRef)
+      loadAd(mobileRef, { key: "84d245d3ecc043dda0a8c5cd9b1d96e2", width: 320, height: 50 });
+
     return () => {
-      if (adRefDesktop.current) adRefDesktop.current.innerHTML = "";
-      if (adRefTablet.current) adRefTablet.current.innerHTML = "";
-      if (adRefMobile.current) adRefMobile.current.innerHTML = "";
+      if (desktopRef) desktopRef.innerHTML = "";
+      if (tabletRef) tabletRef.innerHTML = "";
+      if (mobileRef) mobileRef.innerHTML = "";
     };
   }, []);
 
   /**
-   * Component layout (responsive Tailwind design)
+   * Responsive Tailwind layout
    */
   return (
     <div className="flex justify-center items-center w-full bg-transparent">
