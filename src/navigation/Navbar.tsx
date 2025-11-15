@@ -9,8 +9,8 @@ import useSWR from "swr";
 import { FootballMatch } from "@/components/player/LiveStreamPlayerApp";
 import { fetcher } from "@/lib/fetcher";
 import SearchModal from "@/components/model/SearchModal";
-import GlobalImage from "@/components/atoms/GlobalImage";
 import Spinner from "@/components/atoms/Spinner";
+import Image from "next/image";
 
 const API_KEY = process.env.NEXT_PUBLIC_TMDB_API_KEY!;
 
@@ -145,13 +145,15 @@ export default function Navbar() {
             {
               logoLoading ? <Spinner className="mr-4 min-w-[136px] h-[72px]" color="#FFFFFFE6" size={25}/> : (
                 <Link href="/" className="hidden sm:block">
-                  <GlobalImage
+                  <Image
                     width={72}
                     height={72}
+                    priority
                     unoptimized
                     src="/logo.png"
                     alt="App logo"
                     className="object-contain scale-200 select-none mr-10 ml-10 w-[72px] h-[72px] transition-all duration-300"
+                    onLoadingComplete={() => setLogoLoading(false)}
                   />
                 </Link>
               )
@@ -167,7 +169,7 @@ export default function Navbar() {
                 <Link href="/" className="block sm:hidden">
                   <div className="relative w-[72px] h-[72px] mr-10">
                     {/* Normal Logo */}
-                    <GlobalImage
+                    <Image
                       width={72}
                       height={72}
                       unoptimized
@@ -176,9 +178,10 @@ export default function Navbar() {
                       className={`object-contain scale-200 select-none ml-10 absolute top-0 left-0 transition-all duration-300 ease-in-out ${
                         focused ? "opacity-0 scale-95" : "opacity-100 scale-100"
                       }`}
+                      onLoadingComplete={() => setLogoLoading(false)}
                     />
                     {/* Focused Logo */}
-                    <GlobalImage
+                    <Image
                       width={60}
                       height={60}
                       unoptimized
@@ -187,6 +190,7 @@ export default function Navbar() {
                       className={`object-contain scale-200 select-none ml-1 absolute top-1 left-0 transition-all duration-300 ease-in-out ${
                         focused ? "opacity-100 scale-100" : "opacity-0 scale-95"
                       }`}
+                      onLoadingComplete={() => setLogoLoading(false)}
                     />
                   </div>
                 </Link>
@@ -206,9 +210,10 @@ export default function Navbar() {
                 <Link
                   key={item.id}
                   href={item.href}
-                  className={`relative font-medium transition-colors duration-300
+                  className={`relative transition-colors duration-300
+                              font-semibold
                               hover:text-[#228EE5] custom-focuser ${
-                                isActive ? "text-[#228EE5]" : "text-white/90"
+                                isActive ? "text-[#228EE5]" : "text-white/80"
                               }`}
                 >
                   {item.name}

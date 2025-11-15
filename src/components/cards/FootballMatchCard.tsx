@@ -164,6 +164,20 @@ export default function FootballMatchCard({ match }: { match: FootballMatch }) {
     setImageErrors(prev => ({ ...prev, [team]: true }));
   };
 
+  if (!colorsLoaded) {
+    return (
+      <div
+        className="sm:w-[340px] sm:h-52 w-[300px] h-40 shrink-0 rounded-lg overflow-hidden
+                   bg-slate-700/20 animate-pulse"
+      >
+        <div className="w-full h-full bg-gradient-to-r 
+                        from-slate-700/30 via-slate-600/20 to-slate-700/30 
+                        animate-[pulse_1.5s_ease-in-out_infinite]" />
+      </div>
+    );
+  }
+
+
   return (
     <div
       style={{ "--border-color": homeColor } as React.CSSProperties}
